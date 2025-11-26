@@ -1,24 +1,15 @@
 name: user_repository
-description: The repo that handles user
-publish_to: none
 version: 0.0.1
-
+description: Local user repository package for Uniwaste
 environment:
-  sdk: ">=2.19.0 <3.0.0"
+  sdk: ">=2.17.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  firebase_auth: ^6.1.1
-  cloud_firestore: ^6.0.3
-  rxdart: ^0.28.0
-
-equatable: ^2.0.5
-firebase_auth: ^4.16.0
-cloud_firestore: ^4.7.3
-firebase_storage: ^11.3.7
-rxdart: ^0.27.7
-path: ^1.8.3
+  firebase_auth: any
+  cloud_firestore: any
+  equatable: ^2.0.7
 
 dev_dependencies:
   flutter_test:
