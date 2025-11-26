@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "231821086132",
+    "project_id": "uniwaste-1cda1",
+    "storage_bucket": "uniwaste-1cda1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231821086132:android:811296d60b96d1e35436e1",
+        "android_client_info": {
+          "package_name": "com.example.uniwasteApp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDneFQBdYw3hoiB1q5DfSv3q6iElDMwFJ0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

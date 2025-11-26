@@ -1,0 +1,1 @@
+export "user_entity.dart"; // everytime user entity class is called, it will be imported from user_entity.dart
