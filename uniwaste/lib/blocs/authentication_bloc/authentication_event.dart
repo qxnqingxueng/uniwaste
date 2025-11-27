@@ -1,7 +1,6 @@
 part of 'authentication_bloc.dart';
 
-@immutable
-sealed class AuthenticationEvent {
+abstract class AuthenticationEvent extends Equatable {
   const AuthenticationEvent();
 
   @override
@@ -12,4 +11,10 @@ class AuthenticationUserChanged extends AuthenticationEvent {
   final MyUser? user;
 
   const AuthenticationUserChanged(this.user);
+
+  // FIX 3: Added props override here so Bloc knows when user changes
+  @override
+  List<Object?> get props => [user];
 }
+
+class AuthenticationLogoutRequested extends AuthenticationEvent {}
