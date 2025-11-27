@@ -7,8 +7,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  firebase_auth: any
-  cloud_firestore: any
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
   equatable: ^2.0.7
 
 dev_dependencies:
