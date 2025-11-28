@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -46,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // 1. TOP APP BAR (Frame Top)
       appBar: AppBar(
         title: const Text('UniWaste'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Colors.transparent,
         actions: [
           IconButton(
             onPressed: () {
@@ -66,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: const [
 
           // Dashboard
-          Center(child: Text("Dashboard Page\n(Add your widgets here)")),
+          DashboardPage(),
 
           // Cart / Waste
           Center(child: Text("My Cart Page\n(Add your widgets here)")),
