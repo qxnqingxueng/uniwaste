@@ -40,6 +40,42 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Helper to build a custom navigation button
+  Widget _buildNavBtn(int index, IconData icon, String label) {
+    // Check if this tab is currently active
+    final bool isSelected = _currentIndex == index;
+
+    return MaterialButton(
+      minWidth: 40, // Keeps buttons compact
+      onPressed: () => _onTabTapped(index),
+      splashColor: Colors.transparent, // Removes the splash effect
+      highlightColor: Colors.transparent, // Removes the highlight effect on tap
+      padding: const EdgeInsets.all(0), // Remove default padding
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: isSelected
+                ? Color.fromRGBO(119, 136, 115, 1.0)
+                : Color.fromRGBO(208, 209, 208, 1),
+            size: 26,
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isSelected
+                  ? Color.fromRGBO(119, 136, 115, 1.0)
+                  : Color.fromRGBO(208, 209, 208, 1),
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,7 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             onPressed: () {
               // Triggers the global logout logic
-              context.read<AuthenticationBloc>().add(AuthenticationLogoutRequested());
+              context
+                  .read<AuthenticationBloc>()
+                  .add(AuthenticationLogoutRequested());
             },
             icon: const Icon(Icons.logout),
           )
@@ -64,7 +102,6 @@ class _HomeScreenState extends State<HomeScreen> {
         controller: _pageController,
         onPageChanged: _onPageChanged,
         children: const [
-
           // Dashboard
           Center(child: Text("Dashboard Page\n(Add your widgets here)")),
 
@@ -72,8 +109,11 @@ class _HomeScreenState extends State<HomeScreen> {
           Center(child: Text("My Cart Page\n(Add your widgets here)")),
 
           // Profile
+          Center(child: Text("Message Page\n(Add your widgets here)")),
+
+          // Message
           Center(child: Text("Profile Page\n(Add your widgets here)")),
-          
+
           /*
           DashboardPage(),
           CartPage(),
@@ -83,25 +123,60 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
-        selectedItemColor: Colors.blue, // Highlight color
-        unselectedItemColor: Colors.grey, // Inactive color
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(), // Creates the cutout curve
+        notchMargin: 10.0, // Space between the FAB and the bar
+        padding: const EdgeInsets.symmetric(horizontal: 10), // Padding on ends
+        height: 60, // Fixed height for the bar
+        color: Colors.white, // Background color
+        elevation: 10, // Shadow
+
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // --- LEFT SIDE ---
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildNavBtn(0, Icons.home, "Home"),
+                // Add space between Home and Cart if needed
+                const SizedBox(width: 30),
+                _buildNavBtn(1, Icons.shopping_cart, "Cart"),
+              ],
+            ),
+
+            // --- RIGHT SIDE ---
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildNavBtn(2, Icons.chat_outlined, "Chat"),
+                // Add space between Chat and Profile if needed
+                const SizedBox(width: 30),
+                _buildNavBtn(3, Icons.person, "Profile"),
+              ],
+            ),
+          ],
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButton: Container(
+        margin: const EdgeInsets.only(top: 10),
+        height: 50,
+        width: 50,
+        child: FloatingActionButton(
+          backgroundColor: Color.fromRGBO(119, 136, 115, 1.0),
+          elevation: 0,
+          onPressed: () => debugPrint("Qr Button pressed."),
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(
+                width: 1, color: Color.fromRGBO(119, 136, 115, 1.0)),
+            borderRadius: BorderRadius.circular(100),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'Cart',
+          child: const Icon(
+            Icons.qr_code_scanner,
+            color: Colors.white,
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        ),
       ),
     );
   }
