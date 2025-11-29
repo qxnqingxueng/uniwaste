@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+import 'package:uniwaste/screens/p2p/p2p_student_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,9 +19,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Make sure these images exist in your assets folder!
   final List<String> _posterImages = [
-    "assets/images/poster1.png",
-    "assets/images/poster2.png",
-    "assets/images/poster3.png"
+    "assets/images/P2P.png",
+    "assets/images/P2P.png",
+    "assets/images/P2P.png"
   ];
 
   @override
@@ -124,13 +125,13 @@ class _DashboardPageState extends State<DashboardPage> {
                       },
                       // Rounded corners on the left side only
                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.monetization_on, color: Color.fromRGBO(161, 188, 152, 1), size: 28),
-                            const SizedBox(width: 8),
+                            Icon(Icons.monetization_on, color: Color.fromRGBO(161, 188, 152, 1), size: 28),
+                            SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -157,17 +158,17 @@ class _DashboardPageState extends State<DashboardPage> {
                       },
                       // Rounded corners on the right side only
                       borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.local_offer, color: Color.fromRGBO(161, 188, 152, 1), size: 28),
-                            const SizedBox(width: 8),
+                            Icon(Icons.local_offer, color: Color.fromRGBO(161, 188, 152, 1), size: 28),
+                            SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text("Vouchers", style: TextStyle(fontSize: 12, color: Colors.grey)),
                                 Text("3 Active", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                               ],
@@ -194,7 +195,12 @@ class _DashboardPageState extends State<DashboardPage> {
                     title: "Student",
                     subtitle: "Donation / Sell",
                     imagePath: "assets/images/P2P.png", 
-                    onTap: () => print("Tapped P2P"),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const P2PStudentPage()),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -293,7 +299,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildBackgroundImageCard({
     required String title,
-    String? subtitle,
     required String imagePath,
     required VoidCallback onTap,
     bool isMap = false,
