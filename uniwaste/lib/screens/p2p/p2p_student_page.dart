@@ -13,7 +13,6 @@ class P2PStudentPage extends StatelessWidget {
                 style: TextStyle(fontSize: 20, color: Colors.black),
             ),
         backgroundColor: const Color.fromARGB(0, 255, 255, 255),
-        foregroundColor: Colors.black, // Makes the back button black
         
         elevation: 0,
 

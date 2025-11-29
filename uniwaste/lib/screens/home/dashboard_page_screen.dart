@@ -127,24 +127,28 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: InkWell(
                       onTap: () {
                         print("Points Clicked");
-                        // Add navigation to Points Screen here
+                            /*Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const pagename()),
+                              ); 
+                            */
                       },
                       // Rounded corners on the left side only
                       borderRadius: const BorderRadius.horizontal(
                           left: Radius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.monetization_on,
+                            Icon(Icons.monetization_on,
                                 color: Color.fromRGBO(161, 188, 152, 1),
                                 size: 28),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text("My Points",
                                     style: TextStyle(
                                         fontSize: 12, color: Colors.grey)),
@@ -173,24 +177,28 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: InkWell(
                       onTap: () {
                         print("Vouchers Clicked");
-                        // Add navigation to Vouchers Screen here
+                            /*Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const pagename()),
+                              ); 
+                            */
                       },
                       // Rounded corners on the right side only
                       borderRadius: const BorderRadius.horizontal(
                           right: Radius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.local_offer,
+                            Icon(Icons.local_offer,
                                 color: Color.fromRGBO(161, 188, 152, 1),
                                 size: 28),
-                            const SizedBox(width: 8),
+                            SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children: [
                                 Text("Vouchers",
                                     style: TextStyle(
                                         fontSize: 12, color: Colors.grey)),
@@ -217,14 +225,20 @@ class _DashboardPageState extends State<DashboardPage> {
             height: 160,
             child: Row(
               children: [
-                Expanded(
-                  child: _buildCategoryCard(
-                    title: "Student",
-                    subtitle: "Donation / Sell",
-                    imagePath: "assets/images/P2P.png",
-                    onTap: () => print("Tapped P2P"),
-                  ),
-                ),
+            Expanded(
+              child: _buildCategoryCard(
+                title: "Student",
+                subtitle: "Donation / Sell",
+                imagePath: "assets/images/P2P.png",
+                onTap: () {
+                  // Navigate to the real page
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const P2PStudentPage()),
+                  );
+                },
+              ),
+            ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildCategoryCard(
@@ -232,6 +246,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     subtitle: "Surplus Left",
                     imagePath: "assets/images/merchant.jpg",
                     onTap: () => print("Tapped Merchant"),
+                            /*Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const pagename()),
+                              ); 
+                            */
                   ),
                 ),
               ],
@@ -247,6 +266,11 @@ class _DashboardPageState extends State<DashboardPage> {
               title: "Waste Bin Map",
               imagePath: "assets/images/map.jpg",
               onTap: () => print("Tapped Map"),
+                  /*Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const pagename()),
+                    ); 
+                  */
               isMap: true,
             ),
           ),
