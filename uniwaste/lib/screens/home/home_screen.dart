@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
@@ -105,6 +106,12 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.logout),
           )
         ],
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          // Status bar color (transparent so the white AppBar shows through)
+          statusBarColor: Colors.transparent, 
+          statusBarIconBrightness: Brightness.dark, 
+          
+        ),
       ),
 
       // 2. MAIN BODY (The Canvas)

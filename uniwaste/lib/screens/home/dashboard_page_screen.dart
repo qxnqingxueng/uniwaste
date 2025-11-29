@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+import 'package:uniwaste/screens/p2p/p2p_student_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,9 +19,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
   // Make sure these images exist in your assets folder!
   final List<String> _posterImages = [
-    "assets/images/poster1.png",
-    "assets/images/poster2.png",
-    "assets/images/poster3.png"
+    "assets/images/P2P.png",
+    "assets/images/P2P.png",
+    "assets/images/P2P.png"
   ];
 
   @override
@@ -319,7 +320,6 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Widget _buildBackgroundImageCard({
     required String title,
-    String? subtitle,
     required String imagePath,
     required VoidCallback onTap,
     bool isMap = false,
