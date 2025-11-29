@@ -38,6 +38,7 @@ dependencies:
   equatable: ^2.0.5
   user_repository:
     path: packages/user_repository
+  google_fonts: ^6.3.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

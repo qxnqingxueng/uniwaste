@@ -55,7 +55,8 @@ class _DashboardPageState extends State<DashboardPage> {
     final user = context.select((AuthenticationBloc bloc) => bloc.state.user);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.only(
+          left: 16.0, right: 16.0, top: 16.0, bottom: 100.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -74,7 +75,8 @@ class _DashboardPageState extends State<DashboardPage> {
               child: PageView.builder(
                 controller: _posterController,
                 itemCount: _posterImages.length,
-                onPageChanged: (index) => setState(() => _currentPoster = index),
+                onPageChanged: (index) =>
+                    setState(() => _currentPoster = index),
                 itemBuilder: (context, index) {
                   return Image.asset(
                     _posterImages[index],
@@ -88,7 +90,7 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ),
           ),
-          
+
           // Dots Indicator
           const SizedBox(height: 8),
           Row(
@@ -96,10 +98,13 @@ class _DashboardPageState extends State<DashboardPage> {
             children: List.generate(_posterImages.length, (index) {
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: 8, height: 8,
+                width: 8,
+                height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _currentPoster == index ? Colors.blue : Colors.grey.shade300,
+                  color: _currentPoster == index
+                      ? Colors.blue
+                      : Colors.grey.shade300,
                 ),
               );
             }),
@@ -111,8 +116,9 @@ class _DashboardPageState extends State<DashboardPage> {
           Card(
             elevation: 2,
             color: const Color.fromARGB(255, 255, 255, 255),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: IntrinsicHeight( 
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: IntrinsicHeight(
               child: Row(
                 children: [
                   // BUTTON 1: MY POINTS
@@ -123,20 +129,28 @@ class _DashboardPageState extends State<DashboardPage> {
                         // Add navigation to Points Screen here
                       },
                       // Rounded corners on the left side only
-                      borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                      borderRadius: const BorderRadius.horizontal(
+                          left: Radius.circular(12)),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.monetization_on, color: Color.fromRGBO(161, 188, 152, 1), size: 28),
+                            const Icon(Icons.monetization_on,
+                                color: Color.fromRGBO(161, 188, 152, 1),
+                                size: 28),
                             const SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: const [
-                                Text("My Points", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                Text("1,250", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text("My Points",
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey)),
+                                Text("1,250",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ],
@@ -144,10 +158,15 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                     ),
                   ),
-                  
+
                   // VERTICAL DIVIDER
-                  const VerticalDivider(thickness: 1, color: Colors.grey, indent: 8, endIndent: 8, width: 1),
-                  
+                  const VerticalDivider(
+                      thickness: 1,
+                      color: Colors.grey,
+                      indent: 8,
+                      endIndent: 8,
+                      width: 1),
+
                   // BUTTON 2: VOUCHERS
                   Expanded(
                     child: InkWell(
@@ -156,20 +175,28 @@ class _DashboardPageState extends State<DashboardPage> {
                         // Add navigation to Vouchers Screen here
                       },
                       // Rounded corners on the right side only
-                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                      borderRadius: const BorderRadius.horizontal(
+                          right: Radius.circular(12)),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.local_offer, color: Color.fromRGBO(161, 188, 152, 1), size: 28),
+                            const Icon(Icons.local_offer,
+                                color: Color.fromRGBO(161, 188, 152, 1),
+                                size: 28),
                             const SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: const [
-                                Text("Vouchers", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                                Text("3 Active", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                Text("Vouchers",
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.grey)),
+                                Text("3 Active",
+                                    style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
                           ],
@@ -186,14 +213,14 @@ class _DashboardPageState extends State<DashboardPage> {
 
           // 3. SECOND BAR: TWO CARDS (Image Top, Text Below)
           SizedBox(
-            height: 160, 
+            height: 160,
             child: Row(
               children: [
                 Expanded(
                   child: _buildCategoryCard(
                     title: "Student",
                     subtitle: "Donation / Sell",
-                    imagePath: "assets/images/P2P.png", 
+                    imagePath: "assets/images/P2P.png",
                     onTap: () => print("Tapped P2P"),
                   ),
                 ),
@@ -202,7 +229,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: _buildCategoryCard(
                     title: "Merchant",
                     subtitle: "Surplus Left",
-                    imagePath: "assets/images/merchant.jpg", 
+                    imagePath: "assets/images/merchant.jpg",
                     onTap: () => print("Tapped Merchant"),
                   ),
                 ),
@@ -237,7 +264,7 @@ class _DashboardPageState extends State<DashboardPage> {
   }) {
     return Card(
       elevation: 2,
-      color: Colors.white, 
+      color: Colors.white,
       surfaceTintColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
@@ -252,16 +279,15 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: Image.asset(
                   imagePath,
-                  fit: BoxFit.contain, 
+                  fit: BoxFit.contain,
                   errorBuilder: (ctx, err, stack) => Icon(
-                    Icons.image_not_supported, 
-                    size: 50, 
-                    color: Colors.grey.shade300
-                  ),
+                      Icons.image_not_supported,
+                      size: 50,
+                      color: Colors.grey.shade300),
                 ),
               ),
               const SizedBox(height: 12),
-              
+
               // Text Section
               Text(
                 title,
@@ -272,7 +298,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              
+
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -323,7 +349,8 @@ class _DashboardPageState extends State<DashboardPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (isMap) ...[
-                      const Icon(Icons.map_outlined, color: Colors.white, size: 30),
+                      const Icon(Icons.map_outlined,
+                          color: Colors.white, size: 30),
                       const SizedBox(height: 8),
                     ],
                     Text(

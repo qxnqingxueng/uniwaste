@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -60,12 +61,12 @@ class _HomeScreenState extends State<HomeScreen> {
             color: isSelected
                 ? Color.fromRGBO(119, 136, 115, 1.0)
                 : Color.fromRGBO(208, 209, 208, 1),
-            size: 26,
+            size: 28,
           ),
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 10,
               color: isSelected
                   ? Color.fromRGBO(119, 136, 115, 1.0)
                   : Color.fromRGBO(208, 209, 208, 1),
@@ -80,9 +81,18 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       // 1. TOP APP BAR (Frame Top)
       appBar: AppBar(
-        title: const Text('UniWaste'),
+        centerTitle: true,
+        title: Text(
+          'UniWaste',
+          style: GoogleFonts.schoolbell(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
@@ -102,18 +112,30 @@ class _HomeScreenState extends State<HomeScreen> {
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        children: const [
+        children: [
           // Dashboard
-          DashboardPage(),
+          const DashboardPage(),
 
           // Cart / Waste
-          Center(child: Text("My Cart Page\n(Add your widgets here)")),
-
-          // Profile
-          Center(child: Text("Message Page\n(Add your widgets here)")),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: const Center(
+                child: Text("My Cart Page\n(Add your widgets here)")),
+          ),
 
           // Message
-          Center(child: Text("Profile Page\n(Add your widgets here)")),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: const Center(
+                child: Text("Message Page\n(Add your widgets here)")),
+          ),
+
+          // Profile
+          Padding(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: const Center(
+                child: Text("My Cart Page\n(Add your widgets here)")),
+          ),
 
           /*
           DashboardPage(),
@@ -124,46 +146,62 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(), // Creates the cutout curve
-        notchMargin: 10.0, // Space between the FAB and the bar
-        padding: const EdgeInsets.symmetric(horizontal: 10), // Padding on ends
-        height: 60, // Fixed height for the bar
-        color: Colors.white, // Background color
-        elevation: 10, // Shadow
-
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // --- LEFT SIDE ---
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildNavBtn(0, Icons.home, "Home"),
-                // Add space between Home and Cart if needed
-                const SizedBox(width: 30),
-                _buildNavBtn(1, Icons.shopping_cart, "Cart"),
-              ],
-            ),
-
-            // --- RIGHT SIDE ---
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildNavBtn(2, Icons.chat_outlined, "Chat"),
-                // Add space between Chat and Profile if needed
-                const SizedBox(width: 30),
-                _buildNavBtn(3, Icons.person, "Profile"),
-              ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1), // Shadow color
+              blurRadius: 10, // How soft the shadow is
+              spreadRadius: 0.3, // How thick the shadow is
+              offset: const Offset(0, -3), // Negative Y moves the shadow UP
             ),
           ],
+        ),
+        child: BottomAppBar(
+          shape: const CircularNotchedRectangle(), // Creates the cutout curve
+          notchMargin: 10.0, // Space between the FAB and the bar
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10), // Padding on ends
+          height: 60, // Fixed height for the bar
+          color: Colors.white, // Background color
+          elevation: 0, // Shadow
+          clipBehavior: Clip.none,
+
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // --- LEFT SIDE ---
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(padding: const EdgeInsets.only(left: 5)),
+                  _buildNavBtn(0, Icons.home, "Home"),
+                  // Add space between Home and Cart
+                  const SizedBox(width: 25),
+                  _buildNavBtn(1, Icons.shopping_cart, "Cart"),
+                ],
+              ),
+
+              // --- RIGHT SIDE ---
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildNavBtn(2, Icons.chat_outlined, "Chat"),
+                  // Add space between Chat and Profile
+                  const SizedBox(width: 25),
+                  _buildNavBtn(3, Icons.person, "Profile"),
+                  Padding(padding: const EdgeInsets.only(right: 5))
+                ],
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Container(
         margin: const EdgeInsets.only(top: 10),
-        height: 50,
-        width: 50,
+        height: 60,
+        width: 60,
         child: FloatingActionButton(
           backgroundColor: Color.fromRGBO(119, 136, 115, 1.0),
           elevation: 0,
@@ -176,6 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: const Icon(
             Icons.qr_code_scanner,
             color: Colors.white,
+            size: 32,
           ),
         ),
       ),
