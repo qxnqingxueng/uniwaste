@@ -127,7 +127,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: InkWell(
                       onTap: () {
                         print("Points Clicked");
-                            /*Navigator.push(
+                            /*
+                            Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const pagename()),
                               ); 

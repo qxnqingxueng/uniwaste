@@ -9,7 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  user_repository: path ../user_repository
+  user_repository: 
+    path: ../user_repository
 
 equatable: ^2.0.5
 firebase_auth: ^4.16.0
