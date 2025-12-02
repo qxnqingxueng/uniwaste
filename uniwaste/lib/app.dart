@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// Import the real repository so Dart knows what "UserRepository" is
 import 'package:user_repository/user_repository.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'app_view.dart';
@@ -12,11 +11,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthenticationBloc>(
-      create: (context) => AuthenticationBloc(
-        userRepository: userRepository,
+    return RepositoryProvider.value(
+      value: userRepository,
+      child: BlocProvider<AuthenticationBloc>(
+        create: (context) => AuthenticationBloc(
+          userRepository: userRepository,
+        ),
+        child: const MyAppView(),
       ),
-      child: const MyAppView(),
     );
   }
 }

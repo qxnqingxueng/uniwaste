@@ -2,7 +2,7 @@
     package="com.example.uniwasteApp">
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="uniwaste"
+        android:label="flutter_demo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
