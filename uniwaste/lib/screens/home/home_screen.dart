@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:uniwaste/screens/chat/chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -117,40 +118,38 @@ class _HomeScreenState extends State<HomeScreen> {
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
       body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: [
-          // Dashboard
-          const DashboardPage(),
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              physics: const NeverScrollableScrollPhysics(), // Optional: Disable swipe if you only want tab clicks
+              children: [
+                // 0. Dashboard
+                const DashboardPage(),
 
-          // Cart / Waste
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-                child: Text("My Cart Page\n(Add your widgets here)")),
-          ),
+                // 1. Cart / Waste
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  child: const Center(child: Text("My Cart Page")),
+                ),
 
-          // Message
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-                child: Text("Message Page\n(Add your widgets here)")),
-          ),
+                // 2. Chat List Screen (Replaces the placeholder)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 80), // Avoid overlap with bottom bar
+                  child: ChatListScreen(),
+                ),
 
-          // Profile
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-                child: Text("My Cart Page\n(Add your widgets here)")),
-          ),
-
+                // 3. Profile
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 100),
+                  child: const Center(child: Text("Profile Page")),
+                ),
+              ],
+            ),
           /*
           DashboardPage(),
           CartPage(),
           ProfilePage(),   //TO be updated
           */
-        ],
-      ),
+
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
       bottomNavigationBar: Container(

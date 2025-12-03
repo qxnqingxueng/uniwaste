@@ -19,8 +19,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final _priceController = TextEditingController();
   
   // Image Data
+  // ignore: unused_field
   File? _imageFile;
   Uint8List? _imageBytes; // For Blob storage
+  // ignore: unused_field
   File? _proofImageFile; // For packaged food expiry proof
   Uint8List? _proofImageBytes;
 
