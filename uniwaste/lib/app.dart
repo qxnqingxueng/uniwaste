@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:user_repository/user_repository.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
 import 'app_view.dart';
 
 class MyApp extends StatelessWidget {
@@ -11,14 +12,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepositoryProvider.value(
-      value: userRepository,
-      child: BlocProvider<AuthenticationBloc>(
-        create: (context) => AuthenticationBloc(
-          userRepository: userRepository,
+    return MultiBlocProvider(
+      providers: [
+        RepositoryProvider.value(value: userRepository),
+        BlocProvider<AuthenticationBloc>(
+          create:
+              (context) => AuthenticationBloc(userRepository: userRepository),
         ),
-        child: const MyAppView(),
-      ),
+        // Now this will work because we imported it
+        BlocProvider(create: (_) => CartBloc()),
+      ],
+      child: const MyAppView(),
     );
   }
 }

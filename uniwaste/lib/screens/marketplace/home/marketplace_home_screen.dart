@@ -9,314 +9,455 @@ class MarketplaceHomeScreen extends StatefulWidget {
 }
 
 class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
-  // Dummy data for filters
-  final List<String> _categories = [
-    "Halal",
-    "Vegetarian",
-    "No Pork",
-    "Under RM5",
-    "Free Delivery",
-    "Rating 4.5+",
-  ];
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedCategory = "All";
+  List<Map<String, dynamic>> _displayedMerchants = [];
 
-  // Dummy data for Merchants
-  final List<Map<String, dynamic>> _merchants = [
+  // --- DATA SOURCE ---
+  final List<Map<String, dynamic>> _allMerchants = [
     {
+      "id": "m1", // Unique ID for Hero Animation
       "name": "Kafe Lestari (Asian)",
-      "image":
-          "assets/images/merchant.jpg", // Ensure this asset exists or use a network URL
+      "tags": ["Halal", "Asian", "Rice"],
       "rating": 4.8,
       "time": "10-15 min",
       "surplusCount": 5,
       "closingTime": "8:00 PM",
-      "isHalal": true,
+      "deliveryFee": 3.00,
+      "image": "assets/images/merchant.jpg",
+      "popularity": 95,
     },
     {
+      "id": "m2",
       "name": "The Green Salad Bar",
-      "image": "assets/images/merchant.jpg",
+      "tags": ["Vegetarian", "Healthy", "Salad"],
       "rating": 4.5,
       "time": "5-10 min",
       "surplusCount": 2,
       "closingTime": "9:30 PM",
-      "isHalal": true,
+      "deliveryFee": 0.00,
+      "image": "https://via.placeholder.com/150",
+      "popularity": 80,
     },
     {
+      "id": "m3",
       "name": "Bites & Beans Cafe",
-      "image": "assets/images/merchant.jpg",
+      "tags": ["Western", "Coffee", "No Pork"],
       "rating": 4.2,
       "time": "20-30 min",
       "surplusCount": 0,
       "closingTime": "6:00 PM",
-      "isHalal": false,
+      "deliveryFee": 2.50,
+      "image": "assets/images/merchant.jpg",
+      "popularity": 60,
     },
   ];
+
+  final List<String> _categories = [
+    "All",
+    "Halal",
+    "Vegetarian",
+    "No Pork",
+    "Free Delivery",
+    "Rating 4.5+",
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _runFilterLogic();
+  }
+
+  void _runFilterLogic() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _displayedMerchants =
+          _allMerchants.where((merchant) {
+            final nameMatches = merchant['name'].toLowerCase().contains(query);
+            bool categoryMatches = true;
+            if (_selectedCategory != "All") {
+              if (_selectedCategory == "Free Delivery") {
+                categoryMatches = merchant['deliveryFee'] == 0;
+              } else if (_selectedCategory == "Rating 4.5+") {
+                categoryMatches = merchant['rating'] >= 4.5;
+              } else {
+                List<String> tags = merchant['tags'];
+                categoryMatches = tags.contains(_selectedCategory);
+              }
+            }
+            return nameMatches && categoryMatches;
+          }).toList();
+      _displayedMerchants.sort(
+        (a, b) => b['popularity'].compareTo(a['popularity']),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleSpacing: 0,
-        leading: const Icon(Icons.location_on, color: Colors.red),
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Current Location",
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            Text(
-              "Universiti Malaya",
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.shopping_bag_outlined, color: Colors.black),
-            onPressed: () {
-              // TODO: Navigate to Cart Screen
-            },
-          ),
-          const SizedBox(width: 10),
-        ],
-      ),
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(), // iOS style bouncy scroll
         slivers: [
-          // 1. Search Bar
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search "Nasi Lemak"',
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Colors.grey[200],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+          // --- 1. FANCY APP BAR (Sliver) ---
+          SliverAppBar(
+            expandedHeight: 120.0,
+            floating: true,
+            pinned: true, // Keeps the "Location" visible
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: Colors.black,
+                size: 20,
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.location_on, color: Colors.red),
+                SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Current Location",
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    Text(
+                      "Universiti Malaya",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.black,
+                ),
+                onPressed: () {},
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.shopping_bag_outlined,
+                  color: Colors.black,
+                ),
+                onPressed: () {},
+              ),
+            ],
+            // Search Bar inside the flexible space for "Collapse" effect
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(60),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                color: Colors.white,
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => _runFilterLogic(),
+                  decoration: InputDecoration(
+                    hintText: 'Search "Nasi Lemak"',
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.grey[100],
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30), // Pill shape
+                      borderSide: BorderSide.none,
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 ),
               ),
             ),
           ),
 
-          // 2. Filters
+          // --- 2. STICKY CATEGORY LIST ---
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 40,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                scrollDirection: Axis.horizontal,
-                itemCount: _categories.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  return _FilterChipWidget(label: _categories[index]);
-                },
-              ),
-            ),
-          ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-
-          // 3. Title
-          const SliverPadding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverToBoxAdapter(
-              child: Text(
-                "Surplus Near You",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-
-          // 4. Merchant List
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final merchant = _merchants[index];
-                return _MerchantCard(
-                  name: merchant['name'],
-                  rating: merchant['rating'],
-                  time: merchant['time'],
-                  surplusCount: merchant['surplusCount'],
-                  closingTime: merchant['closingTime'],
-                  imageUrl: merchant['image'],
-                  onTap: () {
-                    // --- NAVIGATION LOGIC ---
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => MerchantPage(
-                              merchantName: merchant['name'],
-                              imageUrl: merchant['image'],
-                            ),
-                      ),
-                    );
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: SizedBox(
+                height: 40,
+                // ShaderMask makes the list fade out at the edge (Visual Polish)
+                child: ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.white, Colors.white, Colors.transparent],
+                      stops: [0.0, 0.9, 1.0],
+                    ).createShader(bounds);
                   },
-                );
-              }, childCount: _merchants.length),
+                  blendMode: BlendMode.dstIn,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      final isSelected = _selectedCategory == cat;
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        child: ActionChip(
+                          label: Text(cat),
+                          backgroundColor:
+                              isSelected ? Colors.green : Colors.white,
+                          labelStyle: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black,
+                            fontWeight:
+                                isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                          ),
+                          side: BorderSide(
+                            color:
+                                isSelected
+                                    ? Colors.green
+                                    : Colors.grey.shade300,
+                          ),
+                          shape: const StadiumBorder(),
+                          onPressed: () {
+                            setState(() {
+                              if (_selectedCategory == cat && cat != "All") {
+                                _selectedCategory = "All";
+                              } else {
+                                _selectedCategory = cat;
+                              }
+                              _runFilterLogic();
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ),
           ),
+
+          // --- 3. MERCHANT LIST WITH HERO ANIMATION ---
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver:
+                _displayedMerchants.isEmpty
+                    ? const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Text("No merchants found"),
+                        ),
+                      ),
+                    )
+                    : SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final merchant = _displayedMerchants[index];
+                        return _FancyMerchantCard(
+                          merchant: merchant,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => MerchantPage(
+                                      merchantName: merchant['name'],
+                                      imageUrl: merchant['image'],
+                                      // Pass ID for Hero tag (Optional if you update MerchantPage)
+                                    ),
+                              ),
+                            );
+                          },
+                        );
+                      }, childCount: _displayedMerchants.length),
+                    ),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
     );
   }
 }
 
-// --- LOCAL WIDGETS ---
+class _FancyMerchantCard extends StatelessWidget {
+  final Map<String, dynamic> merchant;
+  final VoidCallback onTap;
 
-class _FilterChipWidget extends StatelessWidget {
-  final String label;
-  const _FilterChipWidget({required this.label});
+  const _FancyMerchantCard({required this.merchant, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Center(
-        child: Text(
-          label,
-          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-        ),
-      ),
-    );
-  }
-}
-
-class _MerchantCard extends StatelessWidget {
-  final String name;
-  final double rating;
-  final String time;
-  final int surplusCount;
-  final String closingTime;
-  final String imageUrl;
-  final VoidCallback onTap;
-
-  const _MerchantCard({
-    required this.name,
-    required this.rating,
-    required this.time,
-    required this.surplusCount,
-    required this.closingTime,
-    required this.imageUrl,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: SizedBox(
-                    height: 150,
-                    width: double.infinity,
-                    child: Image.asset(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder:
-                          (c, o, s) => Container(color: Colors.grey[300]),
-                    ),
-                  ),
-                ),
-                if (surplusCount > 0)
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // HERO ANIMATION WRAPPER
+              Hero(
+                tag:
+                    merchant['name'], // This connects the image to the next screen
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
                       ),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "$surplusCount Surplus Items Left",
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
+                      child: SizedBox(
+                        height: 160,
+                        width: double.infinity,
+                        child: Image.asset(
+                          merchant['image'],
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (c, o, s) => Container(
+                                color: Colors.grey[200],
+                                child: const Icon(Icons.store),
+                              ),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.orange, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        rating.toString(),
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                    if (merchant['surplusCount'] > 0)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            "${merchant['surplusCount']} Left",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        "$time • Closes $closingTime",
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            merchant['name'],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.orange,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                merchant['rating'].toString(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${merchant['tags'].join(' • ')}",
+                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.access_time,
+                          size: 14,
+                          color: Colors.green[700],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          merchant['time'],
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Text(
+                            "•",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        Text(
+                          merchant['deliveryFee'] == 0
+                              ? "Free Delivery"
+                              : "RM ${merchant['deliveryFee']} Delivery",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
