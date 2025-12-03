@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -108,9 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
         systemOverlayStyle: const SystemUiOverlayStyle(
           // Status bar color (transparent so the white AppBar shows through)
-          statusBarColor: Colors.transparent, 
-          statusBarIconBrightness: Brightness.dark, 
-          
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
         ),
       ),
 
@@ -212,7 +212,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: FloatingActionButton(
           backgroundColor: Color.fromRGBO(119, 136, 115, 1.0),
           elevation: 0,
-          onPressed: () => debugPrint("Qr Button pressed."),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const QrScanScreen()),
+            );
+          },
           shape: RoundedRectangleBorder(
             side: const BorderSide(
                 width: 1, color: Color.fromRGBO(119, 136, 115, 1.0)),
