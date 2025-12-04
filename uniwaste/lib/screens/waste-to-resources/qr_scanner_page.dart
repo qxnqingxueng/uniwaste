@@ -29,9 +29,9 @@ class _QrScanScreenState extends State<QrScanScreen> {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Could not launch $urlString")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Could not launch $urlString")));
       }
     }
   }
@@ -73,8 +73,10 @@ class _QrScanScreenState extends State<QrScanScreen> {
                   _isScanned = false; // Unlock to scan again
                 });
               },
-              child: const Text("Scan Again",
-                  style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                "Scan Again",
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
 
             // 2. OPEN LINK BUTTON
@@ -111,10 +113,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         centerTitle: true,
         title: const Text(
           'QR Code Scanner',
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.black,
-          ),
+          style: TextStyle(fontSize: 20, color: Colors.black),
         ),
         elevation: 0,
         leading: IconButton(
@@ -148,7 +147,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
           Container(
             decoration: ShapeDecoration(
               shape: QrScannerOverlayShape(
-                overlayColor: Colors.black.withValues(alpha: 0.7),
+                overlayColor: Colors.black.withValues(alpha: 0.5),
                 cutOutSize: scanBoxSize, // Ensure this matches the text spacing
               ),
             ),
@@ -160,10 +159,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
               mainAxisSize: MainAxisSize.min, // Shrink column to fit content
               children: [
                 // 1. Invisible box representing the Scanner Area
-                const SizedBox(
-                  height: scanBoxSize,
-                  width: scanBoxSize,
-                ),
+                const SizedBox(height: scanBoxSize, width: scanBoxSize),
 
                 // 2. Small gap
                 const SizedBox(height: 100),
@@ -232,86 +228,107 @@ class QrScannerOverlayShape extends ShapeBorder {
     final width = rect.width;
     final borderOffset = borderWidth / 2;
     final mCutOutSize = cutOutSize < width ? cutOutSize : width - borderOffset;
-    final mBorderLength = borderLength > mCutOutSize / 2 + borderWidth * 2
-        ? borderLength / 2
-        : borderLength;
+    final mBorderLength =
+        borderLength > mCutOutSize / 2 + borderWidth * 2
+            ? borderLength / 2
+            : borderLength;
     final mBorderRadius =
         borderRadius > mBorderLength ? mBorderLength : borderRadius;
 
-    final path = Path()
-      ..fillType = PathFillType.evenOdd
-      ..addRect(rect)
-      ..addRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(
-              center: rect.center, width: mCutOutSize, height: mCutOutSize),
-          Radius.circular(mBorderRadius),
-        ),
-      );
+    final path =
+        Path()
+          ..fillType = PathFillType.evenOdd
+          ..addRect(rect)
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromCenter(
+                center: rect.center,
+                width: mCutOutSize,
+                height: mCutOutSize,
+              ),
+              Radius.circular(mBorderRadius),
+            ),
+          );
 
-    final paint = Paint()
-      ..color = overlayColor
-      ..style = PaintingStyle.fill;
+    final paint =
+        Paint()
+          ..color = overlayColor
+          ..style = PaintingStyle.fill;
 
     canvas.drawPath(path, paint);
 
-    final borderPaint = Paint()
-      ..color = borderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = borderWidth;
+    final borderPaint =
+        Paint()
+          ..color = borderColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = borderWidth;
 
     final borderRect = RRect.fromRectAndRadius(
       Rect.fromCenter(
-          center: rect.center, width: mCutOutSize, height: mCutOutSize),
+        center: rect.center,
+        width: mCutOutSize,
+        height: mCutOutSize,
+      ),
       Radius.circular(mBorderRadius),
     );
 
     // Draw corners
     canvas.drawPath(
-        Path()
-          ..moveTo(borderRect.left, borderRect.top + mBorderLength)
-          ..lineTo(borderRect.left, borderRect.top + mBorderRadius)
-          ..arcToPoint(Offset(borderRect.left + mBorderRadius, borderRect.top),
-              radius: Radius.circular(mBorderRadius))
-          ..lineTo(borderRect.left + mBorderLength, borderRect.top),
-        borderPaint);
+      Path()
+        ..moveTo(borderRect.left, borderRect.top + mBorderLength)
+        ..lineTo(borderRect.left, borderRect.top + mBorderRadius)
+        ..arcToPoint(
+          Offset(borderRect.left + mBorderRadius, borderRect.top),
+          radius: Radius.circular(mBorderRadius),
+        )
+        ..lineTo(borderRect.left + mBorderLength, borderRect.top),
+      borderPaint,
+    );
 
     canvas.drawPath(
-        Path()
-          ..moveTo(borderRect.right - mBorderLength, borderRect.top)
-          ..lineTo(borderRect.right - mBorderRadius, borderRect.top)
-          ..arcToPoint(Offset(borderRect.right, borderRect.top + mBorderRadius),
-              radius: Radius.circular(mBorderRadius))
-          ..lineTo(borderRect.right, borderRect.top + mBorderLength),
-        borderPaint);
+      Path()
+        ..moveTo(borderRect.right - mBorderLength, borderRect.top)
+        ..lineTo(borderRect.right - mBorderRadius, borderRect.top)
+        ..arcToPoint(
+          Offset(borderRect.right, borderRect.top + mBorderRadius),
+          radius: Radius.circular(mBorderRadius),
+        )
+        ..lineTo(borderRect.right, borderRect.top + mBorderLength),
+      borderPaint,
+    );
 
     canvas.drawPath(
-        Path()
-          ..moveTo(borderRect.right, borderRect.bottom - mBorderLength)
-          ..lineTo(borderRect.right, borderRect.bottom - mBorderRadius)
-          ..arcToPoint(
-              Offset(borderRect.right - mBorderRadius, borderRect.bottom),
-              radius: Radius.circular(mBorderRadius))
-          ..lineTo(borderRect.right - mBorderLength, borderRect.bottom),
-        borderPaint);
+      Path()
+        ..moveTo(borderRect.right, borderRect.bottom - mBorderLength)
+        ..lineTo(borderRect.right, borderRect.bottom - mBorderRadius)
+        ..arcToPoint(
+          Offset(borderRect.right - mBorderRadius, borderRect.bottom),
+          radius: Radius.circular(mBorderRadius),
+        )
+        ..lineTo(borderRect.right - mBorderLength, borderRect.bottom),
+      borderPaint,
+    );
 
     canvas.drawPath(
-        Path()
-          ..moveTo(borderRect.left + mBorderLength, borderRect.bottom)
-          ..lineTo(borderRect.left + mBorderRadius, borderRect.bottom)
-          ..arcToPoint(
-              Offset(borderRect.left, borderRect.bottom - mBorderRadius),
-              radius: Radius.circular(mBorderRadius))
-          ..lineTo(borderRect.left, borderRect.bottom - mBorderLength),
-        borderPaint);
+      Path()
+        ..moveTo(borderRect.left + mBorderLength, borderRect.bottom)
+        ..lineTo(borderRect.left + mBorderRadius, borderRect.bottom)
+        ..arcToPoint(
+          Offset(borderRect.left, borderRect.bottom - mBorderRadius),
+          radius: Radius.circular(mBorderRadius),
+        )
+        ..lineTo(borderRect.left, borderRect.bottom - mBorderLength),
+      borderPaint,
+    );
   }
 
   @override
   ShapeBorder scale(double t) => QrScannerOverlayShape(
-      borderColor: borderColor,
-      borderWidth: borderWidth * t,
-      overlayColor: overlayColor,
-      borderRadius: borderRadius * t,
-      borderLength: borderLength * t,
-      cutOutSize: cutOutSize * t);
+    borderColor: borderColor,
+    borderWidth: borderWidth * t,
+    overlayColor: overlayColor,
+    borderRadius: borderRadius * t,
+    borderLength: borderLength * t,
+    cutOutSize: cutOutSize * t,
+  );
 }
