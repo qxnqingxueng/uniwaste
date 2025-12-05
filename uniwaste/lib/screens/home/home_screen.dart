@@ -5,7 +5,7 @@ import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
-import 'package:uniwaste/screens/social/forum_screen.dart';
+import 'package:uniwaste/screens/social/feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -103,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // Message
-          const ForumScreen(),
+          const FeedScreen(),
 
           // Profile
           const ProfileScreen(),
