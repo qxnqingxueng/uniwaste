@@ -5,6 +5,7 @@ import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
+import 'package:uniwaste/screens/social/forum_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,36 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      // 1. TOP APP BAR (Frame Top)
-      /*  appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          'UniWaste',
-          style: GoogleFonts.schoolbell(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Triggers the global logout logic
-              context
-                  .read<AuthenticationBloc>()
-                  .add(AuthenticationLogoutRequested());
-            },
-            icon: const Icon(Icons.logout),
-          )
-        ],
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          // Status bar color (transparent so the white AppBar shows through)
-          statusBarColor: Colors.transparent, 
-          statusBarIconBrightness: Brightness.dark, 
-          
-        ),
-      ), */
 
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
@@ -132,11 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // Message
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-                child: Text("Message Page\n(Add your widgets here)")),
-          ),
+          const ForumScreen(),
 
           // Profile
           const ProfileScreen(),
