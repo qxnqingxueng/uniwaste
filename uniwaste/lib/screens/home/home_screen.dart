@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:uniwaste/screens/profile/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -84,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       extendBody: true,
       // 1. TOP APP BAR (Frame Top)
-      appBar: AppBar(
+      /*  appBar: AppBar(
         centerTitle: true,
         title: Text(
           'UniWaste',
@@ -112,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
           statusBarIconBrightness: Brightness.dark, 
           
         ),
-      ),
+      ), */
 
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
@@ -138,11 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           // Profile
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-                child: Text("My Cart Page\n(Add your widgets here)")),
-          ),
+          const ProfileScreen(),
 
           /*
           DashboardPage(),
