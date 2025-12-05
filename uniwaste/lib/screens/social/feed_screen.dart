@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class ForumScreen extends StatefulWidget {
-  const ForumScreen({super.key});
+class FeedScreen extends StatefulWidget {
+  const FeedScreen({super.key});
 
   @override
-  State<ForumScreen> createState() => _ForumScreenState();
+  State<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStateMixin {
+class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -28,7 +28,7 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
       backgroundColor: const Color(0xFFF1F3E0),
       appBar: AppBar(
         title: const Text(
-          'Message',
+          'Social',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -75,7 +75,7 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
                 fontWeight: FontWeight.w600,
               ),
               tabs: const [
-                Tab(text: 'Social'),
+                Tab(text: 'Feed'),
                 Tab(text: 'Chat'),
               ],
             ),
@@ -85,20 +85,20 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildSocialTab(),
+          _buildFeedTab(),
           _buildChatTab(),
         ],
       ),
     );
   }
 
-  // Social Tab - Forum posts
-  Widget _buildSocialTab() {
+  // Feed Tab - Feed posts
+  Widget _buildFeedTab() {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 10, // Replace with your actual data
       itemBuilder: (context, index) {
-        return _buildForumPost(
+        return _buildFeedPost(
           userName: 'User ${index + 1}',
           timeAgo: '${index + 1}h ago',
           content: 'Just rescued 3 meals from the cafeteria! Every small action counts 🌱',
@@ -126,7 +126,7 @@ class _ForumScreenState extends State<ForumScreen> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildForumPost({
+  Widget _buildFeedPost({
     required String userName,
     required String timeAgo,
     required String content,
