@@ -19,13 +19,13 @@ class _P2PStudentPageState extends State<P2PStudentPage> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // --- Logic to Claim an Item ---
-Future<void> _claimItem(
+  Future<void> _claimItem(
     String docId, 
     String currentUserId, 
     String currentUserName,
     String donorId, 
     String donorName,
-    Map<String, dynamic> itemData, // Pass the full item data
+    Map<String, dynamic> itemData, 
   ) async {
     try {
       // 1. Update Firestore Status
@@ -54,7 +54,7 @@ Future<void> _claimItem(
           price: (itemData['price'] ?? 0).toDouble(),
         );
 
-        // 3. Navigate to Chat
+        // 3. Navigate to Chat (FIXED: Added otherUserId)
         if (mounted) {
           Navigator.push(
             context,
@@ -62,6 +62,7 @@ Future<void> _claimItem(
               builder: (context) => ChatDetailScreen(
                 chatId: chatId,
                 currentUserId: currentUserId,
+                otherUserId: donorId,    // <--- THIS WAS MISSING
                 otherUserName: donorName,
                 itemName: itemData['description'] ?? 'Food',
               ),
@@ -242,12 +243,12 @@ Future<void> _claimItem(
                               onPressed: (currentUser?.userId == data['donor_id'])
                                   ? null
                                   : () => _claimItem(
-                                      docId,                              // 1. String docId
-                                      currentUser?.userId ?? '',          // 2. String currentUserId
-                                      currentUser?.name ?? 'Student',     // 3. String currentUserName
-                                      data['donor_id'] ?? '',             // 4. String donorId
-                                      data['donor_name'] ?? 'Unknown',    // 5. String donorName
-                                      data,                               // 6. Map<String, dynamic> itemData
+                                      docId,                              
+                                      currentUser?.userId ?? '',          
+                                      currentUser?.name ?? 'Student',     
+                                      data['donor_id'] ?? '',             
+                                      data['donor_name'] ?? 'Unknown',    
+                                      data,                               
                                     ),
 
                               style: ElevatedButton.styleFrom(
