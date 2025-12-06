@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+//import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:uniwaste/screens/chat/chat_list_screen.dart';
+//import 'package:google_fonts/google_fonts.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
+import 'package:uniwaste/screens/social/feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -85,36 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      // 1. TOP APP BAR (Frame Top)
-      /*  appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          'UniWaste',
-          style: GoogleFonts.schoolbell(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Triggers the global logout logic
-              context
-                  .read<AuthenticationBloc>()
-                  .add(AuthenticationLogoutRequested());
-            },
-            icon: const Icon(Icons.logout),
-          )
-        ],
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          // Status bar color (transparent so the white AppBar shows through)
-          statusBarColor: Colors.transparent, 
-          statusBarIconBrightness: Brightness.dark, 
-          
-        ),
-      ), */
 
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
@@ -132,11 +101,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Center(child: Text("My Cart Page")),
                 ),
 
-                // 2. Chat List Screen (Replaces the placeholder)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 80), // Avoid overlap with bottom bar
-                  child: ChatListScreen(),
-                ),
+          // Message
+          const FeedScreen(),
 
           // Profile
           const ProfileScreen()
@@ -188,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildNavBtn(2, Icons.chat_outlined, "Chat"),
+                  _buildNavBtn(2, Icons.group_outlined, "Social"),
                   // Add space between Chat and Profile
                   const SizedBox(width: 25),
                   _buildNavBtn(3, Icons.person, "Profile"),
