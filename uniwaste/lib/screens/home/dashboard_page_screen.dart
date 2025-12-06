@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/p2p_student_page.dart';
+import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -21,7 +22,7 @@ class _DashboardPageState extends State<DashboardPage> {
   final List<String> _posterImages = [
     "assets/images/P2P.png",
     "assets/images/P2P.png",
-    "assets/images/P2P.png"
+    "assets/images/P2P.png",
   ];
 
   @override
@@ -57,7 +58,11 @@ class _DashboardPageState extends State<DashboardPage> {
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(
-          left: 16.0, right: 16.0, top: 16.0, bottom: 100.0),
+        left: 16.0,
+        right: 16.0,
+        top: 16.0,
+        bottom: 100.0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -76,16 +81,17 @@ class _DashboardPageState extends State<DashboardPage> {
               child: PageView.builder(
                 controller: _posterController,
                 itemCount: _posterImages.length,
-                onPageChanged: (index) =>
-                    setState(() => _currentPoster = index),
+                onPageChanged:
+                    (index) => setState(() => _currentPoster = index),
                 itemBuilder: (context, index) {
                   return Image.asset(
                     _posterImages[index],
                     fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => Container(
-                      color: Colors.grey.shade300,
-                      child: const Icon(Icons.broken_image, size: 50),
-                    ),
+                    errorBuilder:
+                        (ctx, err, stack) => Container(
+                          color: Colors.grey.shade300,
+                          child: const Icon(Icons.broken_image, size: 50),
+                        ),
                   );
                 },
               ),
@@ -103,9 +109,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: _currentPoster == index
-                      ? Colors.blue
-                      : Colors.grey.shade300,
+                  color:
+                      _currentPoster == index
+                          ? Colors.blue
+                          : Colors.grey.shade300,
                 ),
               );
             }),
@@ -117,8 +124,9 @@ class _DashboardPageState extends State<DashboardPage> {
           Card(
             elevation: 2,
             color: const Color.fromARGB(255, 255, 255, 255),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: IntrinsicHeight(
               child: Row(
                 children: [
@@ -127,7 +135,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: InkWell(
                       onTap: () {
                         print("Points Clicked");
-                            /*
+                        /*
                             Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const pagename()),
@@ -136,27 +144,37 @@ class _DashboardPageState extends State<DashboardPage> {
                       },
                       // Rounded corners on the left side only
                       borderRadius: const BorderRadius.horizontal(
-                          left: Radius.circular(12)),
+                        left: Radius.circular(12),
+                      ),
                       child: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.monetization_on,
-                                color: Color.fromRGBO(161, 188, 152, 1),
-                                size: 28),
+                            Icon(
+                              Icons.monetization_on,
+                              color: Color.fromRGBO(161, 188, 152, 1),
+                              size: 28,
+                            ),
                             SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("My Points",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey)),
-                                Text("1,250",
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                  "My Points",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  "1,250",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -167,18 +185,19 @@ class _DashboardPageState extends State<DashboardPage> {
 
                   // VERTICAL DIVIDER
                   const VerticalDivider(
-                      thickness: 1,
-                      color: Colors.grey,
-                      indent: 8,
-                      endIndent: 8,
-                      width: 1),
+                    thickness: 1,
+                    color: Colors.grey,
+                    indent: 8,
+                    endIndent: 8,
+                    width: 1,
+                  ),
 
                   // BUTTON 2: VOUCHERS
                   Expanded(
                     child: InkWell(
                       onTap: () {
                         print("Vouchers Clicked");
-                            /*Navigator.push(
+                        /*Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const pagename()),
                               ); 
@@ -186,27 +205,37 @@ class _DashboardPageState extends State<DashboardPage> {
                       },
                       // Rounded corners on the right side only
                       borderRadius: const BorderRadius.horizontal(
-                          right: Radius.circular(12)),
+                        right: Radius.circular(12),
+                      ),
                       child: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12.0),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.local_offer,
-                                color: Color.fromRGBO(161, 188, 152, 1),
-                                size: 28),
+                            Icon(
+                              Icons.local_offer,
+                              color: Color.fromRGBO(161, 188, 152, 1),
+                              size: 28,
+                            ),
                             SizedBox(width: 8),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text("Vouchers",
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.grey)),
-                                Text("3 Active",
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold)),
+                                Text(
+                                  "Vouchers",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Text(
+                                  "3 Active",
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -226,20 +255,22 @@ class _DashboardPageState extends State<DashboardPage> {
             height: 160,
             child: Row(
               children: [
-            Expanded(
-              child: _buildCategoryCard(
-                title: "Student",
-                subtitle: "Donation / Sell",
-                imagePath: "assets/images/P2P.png",
-                onTap: () {
-                  // Navigate to the real page
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const P2PStudentPage()),
-                  );
-                },
-              ),
-            ),
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Student",
+                    subtitle: "Donation / Sell",
+                    imagePath: "assets/images/P2P.png",
+                    onTap: () {
+                      // Navigate to the real page
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const P2PStudentPage(),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildCategoryCard(
@@ -247,7 +278,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     subtitle: "Surplus Left",
                     imagePath: "assets/images/merchant.jpg",
                     onTap: () => print("Tapped Merchant"),
-                            /*Navigator.push(
+                    /*Navigator.push(
                                 context,
                                 MaterialPageRoute(builder: (context) => const pagename()),
                               ); 
@@ -266,12 +297,13 @@ class _DashboardPageState extends State<DashboardPage> {
             child: _buildBackgroundImageCard(
               title: "Waste Bin Map",
               imagePath: "assets/images/map.jpg",
-              onTap: () => print("Tapped Map"),
-                  /*Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const pagename()),
-                    ); 
-                  */
+              onTap: () {
+                debugPrint("Tapped Map");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WasteBinMap()),
+                );
+              },
               isMap: true,
             ),
           ),
@@ -306,10 +338,12 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: Image.asset(
                   imagePath,
                   fit: BoxFit.contain,
-                  errorBuilder: (ctx, err, stack) => Icon(
-                      Icons.image_not_supported,
-                      size: 50,
-                      color: Colors.grey.shade300),
+                  errorBuilder:
+                      (ctx, err, stack) => Icon(
+                        Icons.image_not_supported,
+                        size: 50,
+                        color: Colors.grey.shade300,
+                      ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -330,10 +364,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
             ],
@@ -361,9 +392,7 @@ class _DashboardPageState extends State<DashboardPage> {
             fit: BoxFit.cover,
             errorBuilder: (ctx, err, stack) => Container(color: Colors.grey),
           ),
-          Container(
-            color: Colors.black.withOpacity(0.4),
-          ),
+          Container(color: Colors.black.withOpacity(0.4)),
           Material(
             color: Colors.transparent,
             child: InkWell(
@@ -374,8 +403,11 @@ class _DashboardPageState extends State<DashboardPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (isMap) ...[
-                      const Icon(Icons.map_outlined,
-                          color: Colors.white, size: 30),
+                      const Icon(
+                        Icons.map_outlined,
+                        color: Colors.white,
+                        size: 30,
+                      ),
                       const SizedBox(height: 8),
                     ],
                     Text(
