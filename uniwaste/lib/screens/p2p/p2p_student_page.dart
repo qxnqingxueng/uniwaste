@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/create_listing_screen.dart'; 
 import 'package:uniwaste/services/chat_service.dart';
-import 'package:uniwaste/screens/chat/chat_detail_screen.dart';
+import 'package:uniwaste/screens/social/chat_detail_screen.dart';
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});

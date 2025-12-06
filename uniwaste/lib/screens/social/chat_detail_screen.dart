@@ -8,7 +8,7 @@ import 'package:uniwaste/services/chat_service.dart';
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
   final String currentUserId;
-  final String otherUserId; // ADDED
+  final String otherUserId; 
   final String otherUserName;
   final String itemName;
 
@@ -16,7 +16,7 @@ class ChatDetailScreen extends StatefulWidget {
     super.key,
     required this.chatId,
     required this.currentUserId,
-    required this.otherUserId, // ADDED
+    required this.otherUserId, 
     required this.otherUserName,
     required this.itemName,
   });
@@ -29,17 +29,22 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ChatService _chatService = ChatService();
 
+  // --- Loading State ---
+  bool _isLoading = true; 
+  
+  // Data storage
   Uint8List? _otherUserImageBytes;
   Map<String, dynamic>? _otherUserData;
+  MemoryImage? _profileImageProvider; // The cached image provider
 
   @override
   void initState() {
     super.initState();
-    _fetchOtherUserProfile();
+    _loadProfileAndCache();
   }
 
-  // --- Fetch Other User Data ---
-  Future<void> _fetchOtherUserProfile() async {
+  // --- Fetch & Pre-cache Logic ---
+  Future<void> _loadProfileAndCache() async {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -47,17 +52,42 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           .get();
 
       if (doc.exists) {
-        setState(() {
-          _otherUserData = doc.data();
-          if (_otherUserData != null &&
-              _otherUserData!['photoBase64'] != null &&
-              _otherUserData!['photoBase64'].isNotEmpty) {
-            _otherUserImageBytes = base64Decode(_otherUserData!['photoBase64']);
+        _otherUserData = doc.data();
+
+        // Check for photo
+        if (_otherUserData != null &&
+            _otherUserData!['photoBase64'] != null &&
+            _otherUserData!['photoBase64'].isNotEmpty) {
+          
+          final String base64Str = _otherUserData!['photoBase64'];
+          
+          try {
+            final Uint8List bytes = base64Decode(base64Str);
+            _otherUserImageBytes = bytes; // Keep bytes for the dialog usage
+
+            // Create Image Provider
+            final image = MemoryImage(bytes);
+
+            // CRITICAL: Pre-cache before showing UI
+            if (mounted) {
+              await precacheImage(image, context);
+            }
+            
+            _profileImageProvider = image;
+          } catch (e) {
+            debugPrint("Error decoding profile image: $e");
           }
-        });
+        }
       }
     } catch (e) {
       debugPrint("Error fetching user profile: $e");
+    } finally {
+      // Stop loading only after image is ready (or failed)
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -66,11 +96,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     showDialog(
       context: context,
       builder: (context) {
-        // Defaults if data is missing
         final String name = _otherUserData?['name'] ?? widget.otherUserName;
         final String gender = _otherUserData?['gender'] ?? 'Not Specified';
-        // Assume ranking is stored or default to 'Member'
-        final String ranking = _otherUserData?['ranking'] ?? 'LV1 Eco-Warrior'; 
+        final String ranking = _otherUserData?['ranking'] ?? '1st Eco-Warrior'; 
+        final String email = _otherUserData?['email'] ?? 'Not Provided';
 
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -79,7 +108,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Profile Picture
+                // Profile Picture (Large)
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -89,10 +118,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey.shade200,
-                    backgroundImage: _otherUserImageBytes != null
-                        ? MemoryImage(_otherUserImageBytes!)
-                        : null,
-                    child: _otherUserImageBytes == null
+                    // Use the provider we already prepared
+                    backgroundImage: _profileImageProvider,
+                    child: _profileImageProvider == null
                         ? Text(
                             name.isNotEmpty ? name[0].toUpperCase() : "?",
                             style: const TextStyle(fontSize: 40, color: Colors.grey),
@@ -127,13 +155,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Details Row
                 Divider(color: Colors.grey.shade300),
-                const SizedBox(height: 10),
+                const SizedBox(height: 5),
                 _buildInfoRow(Icons.wc, "Gender", gender),
-                const SizedBox(height: 10),
-                // You can add more fields here if available
-                
+                const SizedBox(height: 5),
+                Divider(color: Colors.grey.shade300),
+                const SizedBox(height: 5),
+                _buildInfoRow(Icons.email, "Email", email),
+                const SizedBox(height: 5),
+                Divider(color: Colors.grey.shade300),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -144,7 +174,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text("Close"),
+                    child: const Text("View Details"),
                   ),
                 )
               ],
@@ -181,7 +211,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _messageController.clear();
   }
 
-  // --- Helper to Build the Item Card Bubble ---
   Widget _buildItemCard(Map<String, dynamic> data, bool isMe) {
     final cardData = data['cardData'] as Map<String, dynamic>? ?? {};
     final String title = cardData['title'] ?? 'Item';
@@ -249,6 +278,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. Loading State: Block the UI until the image is ready
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // 2. Data Ready: Render the Scaffold
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -262,10 +299,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               child: CircleAvatar(
                 radius: 18,
                 backgroundColor: const Color.fromRGBO(210, 220, 182, 1),
-                backgroundImage: _otherUserImageBytes != null
-                    ? MemoryImage(_otherUserImageBytes!)
-                    : null,
-                child: _otherUserImageBytes == null
+                // Use the pre-cached provider
+                backgroundImage: _profileImageProvider,
+                child: _profileImageProvider == null
                     ? Text(
                         widget.otherUserName.isNotEmpty ? widget.otherUserName[0].toUpperCase() : "?",
                         style: const TextStyle(fontSize: 14, color: Colors.black87),
