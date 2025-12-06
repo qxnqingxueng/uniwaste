@@ -36,10 +36,10 @@ class _QrScanScreenState extends State<QrScanScreen> {
     }
   }
 
-  // 2. Logic to process the code
+  // Logic to process the code
   void _processQrCode(String code) {
     setState(() {
-      _isScanned = true; // Use your existing variable name here (_isScanned)
+      _isScanned = true;
     });
 
     showDialog(
@@ -65,7 +65,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
             ],
           ),
           actions: [
-            // 1. SCAN AGAIN BUTTON
+            // Scan Again Button
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -79,7 +79,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
               ),
             ),
 
-            // 2. OPEN LINK BUTTON
+            // Open Link Button
             if (isUrl)
               FilledButton(
                 onPressed: () {
@@ -95,9 +95,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // We define this variable so we can match the Text position to the Box size
     const double scanBoxSize = 300.0;
-
     final double screenWidth = MediaQuery.of(context).size.width;
     final double screenHeight = MediaQuery.of(context).size.height;
 
@@ -125,7 +123,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
       ),
       body: Stack(
         children: [
-          // LAYER 1: Camera Feed
+          // Camera Feed
           MobileScanner(
             controller: controller,
             scanWindow: scanWindow,
@@ -143,7 +141,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
             },
           ),
 
-          // LAYER 2: The Dark Mask & Scanner Box
+          // The Dark Mask & Scanner Box
           Container(
             decoration: ShapeDecoration(
               shape: QrScannerOverlayShape(
@@ -153,15 +151,15 @@ class _QrScanScreenState extends State<QrScanScreen> {
             ),
           ),
 
-          // LAYER 3: The Text (Aligned perfectly under the box)
+          // The Text
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min, // Shrink column to fit content
               children: [
-                // 1. Invisible box representing the Scanner Area
+                // Invisible box representing the Scanner Area
                 const SizedBox(height: scanBoxSize, width: scanBoxSize),
 
-                // 2. Small gap
+                // Small gap
                 const SizedBox(height: 100),
 
                 const Text(
