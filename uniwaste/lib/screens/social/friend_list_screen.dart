@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';      // for base64Decode
 import 'dart:typed_data';   // for Uint8List / MemoryImage
+import 'friend_profile_screen.dart';
 
 class FriendListScreen extends StatefulWidget {
   const FriendListScreen({super.key});
@@ -221,7 +222,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
     }
   }
 
-  // show bottom sheet with "Remove friend"
+  // show bottom sheet with "Remove friend" & "View Profile"
   void _showFriendOptions(_Friend friend) {
     showModalBottomSheet(
       context: context,
@@ -232,6 +233,26 @@ class _FriendListScreenState extends State<FriendListScreen> {
         return SafeArea(
           child: Wrap(
             children: [
+              // 👉 NEW: View profile
+              ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('View profile'),
+                onTap: () {
+                  Navigator.of(sheetCtx).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FriendProfileScreen(
+                        name: friend.name,
+                        email: friend.email,
+                        avatarBase64: friend.avatarBase64,
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // Existing: Remove friend (unchanged logic)
               ListTile(
                 leading: const Icon(Icons.person_remove_outlined),
                 title: const Text('Remove friend'),
