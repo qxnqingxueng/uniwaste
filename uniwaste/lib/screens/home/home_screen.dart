@@ -157,7 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildNavBtn(2, Icons.chat_outlined, "Chat"),
+                  _buildNavBtn(2, Icons.group_outlined, "Social"),
                   // Add space between Chat and Profile
                   const SizedBox(width: 25),
                   _buildNavBtn(3, Icons.person, "Profile"),
