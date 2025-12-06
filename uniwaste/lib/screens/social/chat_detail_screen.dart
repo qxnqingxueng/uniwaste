@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uniwaste/services/chat_service.dart';
+import 'package:uniwaste/screens/social/friend_profile_screen.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -92,14 +93,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   // --- Show User Profile Dialog ---
-  void _showUserCard() {
+void _showUserCard() {
     showDialog(
       context: context,
       builder: (context) {
+        // 1. Prepare the data using the fetched profile or fallbacks
         final String name = _otherUserData?['name'] ?? widget.otherUserName;
         final String gender = _otherUserData?['gender'] ?? 'Not Specified';
         final String ranking = _otherUserData?['ranking'] ?? '1st Eco-Warrior'; 
         final String email = _otherUserData?['email'] ?? 'Not Provided';
+        final String? photoBase64 = _otherUserData?['photoBase64']; // Get the raw base64 string
 
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -118,7 +121,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   child: CircleAvatar(
                     radius: 50,
                     backgroundColor: Colors.grey.shade200,
-                    // Use the provider we already prepared
                     backgroundImage: _profileImageProvider,
                     child: _profileImageProvider == null
                         ? Text(
@@ -165,10 +167,27 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 const SizedBox(height: 5),
                 Divider(color: Colors.grey.shade300),
                 const SizedBox(height: 20),
+                
+                // View Details Button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      // 1. Close the dialog so it's not there when you come back
+                      Navigator.pop(context); 
+                      
+                      // 2. Navigate to Friend Profile with the required data
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FriendProfileScreen(
+                            name: name,
+                            email: email,
+                            avatarBase64: photoBase64,
+                          ),
+                        ),
+                      ); 
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
                       foregroundColor: Colors.white,
