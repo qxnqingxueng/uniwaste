@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/p2p_student_page.dart';
-import 'package:uniwaste/screens/marketplace/home/marketplace_home_screen.dart';
+import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -277,16 +277,12 @@ class _DashboardPageState extends State<DashboardPage> {
                     title: "Merchant",
                     subtitle: "Surplus Left",
                     imagePath: "assets/images/merchant.jpg",
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) =>
-                                  const MarketplaceHomeScreen(), // Your new screen
-                        ),
-                      );
-                    },
+                    onTap: () => print("Tapped Merchant"),
+                    /*Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const pagename()),
+                              ); 
+                            */
                   ),
                 ),
               ],
@@ -301,12 +297,13 @@ class _DashboardPageState extends State<DashboardPage> {
             child: _buildBackgroundImageCard(
               title: "Waste Bin Map",
               imagePath: "assets/images/map.jpg",
-              onTap: () => print("Tapped Map"),
-              /*Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const pagename()),
-                    ); 
-                  */
+              onTap: () {
+                debugPrint("Tapped Map");
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WasteBinMap()),
+                );
+              },
               isMap: true,
             ),
           ),

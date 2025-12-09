@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+//import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
-import 'package:google_fonts/google_fonts.dart';
+//import 'package:google_fonts/google_fonts.dart';
+import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
+import 'package:uniwaste/screens/profile/profile_screen.dart';
+import 'package:uniwaste/screens/social/feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -60,8 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(
             icon,
             color: isSelected
-                ? const Color.fromRGBO(119, 136, 115, 1.0)
-                : const Color.fromRGBO(208, 209, 208, 1),
+                ? Color.fromRGBO(119, 136, 115, 1.0)
+                : Color.fromRGBO(208, 209, 208, 1),
             size: 28,
           ),
           Text(
@@ -69,8 +71,8 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 10,
               color: isSelected
-                  ? const Color.fromRGBO(119, 136, 115, 1.0)
-                  : const Color.fromRGBO(208, 209, 208, 1),
+                  ? Color.fromRGBO(119, 136, 115, 1.0)
+                  : Color.fromRGBO(208, 209, 208, 1),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -83,74 +85,41 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       extendBody: true,
-      // 1. TOP APP BAR (Frame Top)
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text(
-          'UniWaste',
-          style: GoogleFonts.schoolbell(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Triggers the global logout logic
-              context
-                  .read<AuthenticationBloc>()
-                  .add(AuthenticationLogoutRequested());
-            },
-            icon: const Icon(Icons.logout),
-          )
-        ],
-        systemOverlayStyle: const SystemUiOverlayStyle(
-          // Status bar color (transparent so the white AppBar shows through)
-          statusBarColor: Colors.transparent, 
-          statusBarIconBrightness: Brightness.dark, 
-          
-        ),
-      ),
 
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        children: const [
+        children: [
           // Dashboard
-          DashboardPage(),
+          const DashboardPage(),
 
           // Cart / Waste
           Padding(
-            padding: EdgeInsets.only(bottom: 100),
-            child: Center(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: const Center(
                 child: Text("My Cart Page\n(Add your widgets here)")),
           ),
 
           // Message
           Padding(
-            padding: EdgeInsets.only(bottom: 100),
-            child: Center(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: const Center(
                 child: Text("Message Page\n(Add your widgets here)")),
           ),
 
           // Profile
           Padding(
-            padding: EdgeInsets.only(bottom: 100),
-            child: Center(
+            padding: const EdgeInsets.only(bottom: 100),
+            child: const Center(
                 child: Text("My Cart Page\n(Add your widgets here)")),
           ),
 
           /*
-          DashboardPage(),
-          CartPage(),
-          ProfilePage(),   //TO be updated
+          CartPage(), //TO be updated
           */
-        ],
-      ),
+
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
       bottomNavigationBar: Container(
@@ -167,8 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
         child: BottomAppBar(
           shape: const CircularNotchedRectangle(), // Creates the cutout curve
           notchMargin: 10.0, // Space between the FAB and the bar
-          padding:
-              const EdgeInsets.symmetric(horizontal: 10), // Padding on ends
+          padding: const EdgeInsets.symmetric(
+            horizontal: 10,
+          ), // Padding on ends
           height: 60, // Fixed height for the bar
           color: Colors.white, // Background color
           elevation: 0, // Shadow
@@ -193,11 +163,11 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildNavBtn(2, Icons.chat_outlined, "Chat"),
+                  _buildNavBtn(2, Icons.group_outlined, "Social"),
                   // Add space between Chat and Profile
                   const SizedBox(width: 25),
                   _buildNavBtn(3, Icons.person, "Profile"),
-                  const Padding(padding: EdgeInsets.only(right: 5))
+                  Padding(padding: const EdgeInsets.only(right: 5))
                 ],
               ),
             ],
@@ -212,10 +182,17 @@ class _HomeScreenState extends State<HomeScreen> {
         child: FloatingActionButton(
           backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
           elevation: 0,
-          onPressed: () => debugPrint("Qr Button pressed."),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const QrScanScreen()),
+            );
+          },
           shape: RoundedRectangleBorder(
             side: const BorderSide(
-                width: 1, color: Color.fromRGBO(119, 136, 115, 1.0)),
+              width: 1,
+              color: Color.fromRGBO(119, 136, 115, 1.0),
+            ),
             borderRadius: BorderRadius.circular(100),
           ),
           child: const Icon(

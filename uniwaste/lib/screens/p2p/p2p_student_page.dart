@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart'; 
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/create_listing_screen.dart'; 
+import 'package:uniwaste/services/chat_service.dart';
+import 'package:uniwaste/screens/social/chat_detail_screen.dart';
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});
@@ -17,23 +19,61 @@ class _P2PStudentPageState extends State<P2PStudentPage> {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // --- Logic to Claim an Item ---
-  Future<void> _claimItem(String docId, String currentUserId) async {
+  Future<void> _claimItem(
+    String docId, 
+    String currentUserId, 
+    String currentUserName,
+    String donorId, 
+    String donorName,
+    Map<String, dynamic> itemData, 
+  ) async {
     try {
+      // 1. Update Firestore Status
       await _db.collection('food_listings').doc(docId).update({
         'status': 'reserved',
         'claimed_by': currentUserId,
         'claimed_at': FieldValue.serverTimestamp(),
       });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item claimed! Chat started (placeholder).')),
+          const SnackBar(content: Text('Item claimed! Sending info to chat...')),
         );
+        
+        // 2. Create Chat & Send Item Card
+        final chatService = ChatService();
+        final chatId = await chatService.createChatAndSendCard(
+          listingId: docId,
+          donorId: donorId,
+          claimerId: currentUserId,
+          donorName: donorName,
+          claimerName: currentUserName,
+          itemName: itemData['description'] ?? 'Food Item',
+          itemDescription: itemData['description'] ?? '',
+          isFree: itemData['is_free'] ?? true,
+          price: (itemData['price'] ?? 0).toDouble(),
+        );
+
+        // 3. Navigate to Chat (FIXED: Added otherUserId)
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatDetailScreen(
+                chatId: chatId,
+                currentUserId: currentUserId,
+                otherUserId: donorId,    // <--- THIS WAS MISSING
+                otherUserName: donorName,
+                itemName: itemData['description'] ?? 'Food',
+              ),
+            ),
+          );
+        }
       }
-      // TODO: Navigate to Chat Screen
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error claiming item: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
@@ -200,9 +240,17 @@ class _P2PStudentPageState extends State<P2PStudentPage> {
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: (currentUser?.userId == data['donor_id']) 
-                                ? null // Disable if it's your own post
-                                : () => _claimItem(docId, currentUser?.userId ?? ''),
+                              onPressed: (currentUser?.userId == data['donor_id'])
+                                  ? null
+                                  : () => _claimItem(
+                                      docId,                              
+                                      currentUser?.userId ?? '',          
+                                      currentUser?.name ?? 'Student',     
+                                      data['donor_id'] ?? '',             
+                                      data['donor_name'] ?? 'Unknown',    
+                                      data,                               
+                                    ),
+
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: (currentUser?.userId == data['donor_id']) 
                                   ? Colors.grey 
