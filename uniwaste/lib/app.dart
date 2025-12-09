@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
           create:
               (context) => AuthenticationBloc(userRepository: userRepository),
         ),
-        // Now this will work because we imported it
+
         BlocProvider(create: (_) => CartBloc()),
       ],
       child: const MyAppView(),

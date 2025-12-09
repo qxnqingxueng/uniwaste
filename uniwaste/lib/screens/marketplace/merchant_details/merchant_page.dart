@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
 import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
-import 'package:uniwaste/screens/marketplace/merchant_details/item_details_bottom_sheet.dart'; // Ensure this exists
+import 'package:uniwaste/screens/marketplace/merchant_details/item_details_bottom_sheet.dart';
 
 class MerchantPage extends StatelessWidget {
   final String merchantName;
@@ -17,18 +19,15 @@ class MerchantPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
 
-      // 1. We removed the fixed 'appBar' to prevent the double-arrow bug.
-      // The SliverAppBar below acts as the only header.
       body: CustomScrollView(
         slivers: [
-          // 2. The Scrolling Header
+          // 1. The Scrolling Header
           SliverAppBar(
-            // Your System Color
-            backgroundColor: const Color(0xFFF1F3E0),
+            backgroundColor: const Color(0xFFF1F3E0), // System Color
             expandedHeight: 200.0,
             floating: false,
-            pinned: true, // Keeps the bar stuck to top when scrolling
-            // Custom Back Button (iOS Style bubble)
+            pinned: true, // Keeps the bar visible when scrolled up
+            // Custom Back Button
             leading: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -41,14 +40,12 @@ class MerchantPage extends StatelessWidget {
                   size: 18,
                   color: Colors.black,
                 ),
-                padding: const EdgeInsets.only(
-                  left: 6,
-                ), // Visually center the arrow
+                padding: const EdgeInsets.only(left: 6),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
 
-            // Custom Cart Button (Top Right)
+            // Cart Icon (Top Right)
             actions: [
               Container(
                 margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
@@ -76,7 +73,6 @@ class MerchantPage extends StatelessWidget {
 
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
-              // Title fades in when collapsed
               title: Text(
                 merchantName,
                 style: const TextStyle(
@@ -85,7 +81,6 @@ class MerchantPage extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              // Hero Animation for smooth transition
               background: Hero(
                 tag: merchantName,
                 child: Image.asset(
@@ -99,7 +94,7 @@ class MerchantPage extends StatelessWidget {
             ),
           ),
 
-          // 3. Merchant Info Section
+          // 2. Merchant Info Section
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -156,9 +151,13 @@ class MerchantPage extends StatelessWidget {
             ),
           ),
 
-          // 4. Menu Items List
+          // 3. Menu Items List
           SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
+              // Mock Price Logic
+              double originalPrice = 12.00;
+              double discountedPrice = 6.00;
+
               return Column(
                 children: [
                   ListTile(
@@ -166,14 +165,11 @@ class MerchantPage extends StatelessWidget {
                       horizontal: 16,
                       vertical: 8,
                     ),
-                    // Food Image Placeholder
                     leading: Container(
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: const Color(
-                          0xFFF1F3E0,
-                        ), // System color background
+                        color: const Color(0xFFF1F3E0),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.fastfood, color: Colors.grey),
@@ -182,9 +178,9 @@ class MerchantPage extends StatelessWidget {
                       "Surplus Item #${index + 1}",
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: const Text(
-                      "Original: RM 12.00",
-                      style: TextStyle(
+                    subtitle: Text(
+                      "Original: RM ${originalPrice.toStringAsFixed(2)}",
+                      style: const TextStyle(
                         decoration: TextDecoration.lineThrough,
                         color: Colors.grey,
                       ),
@@ -193,9 +189,9 @@ class MerchantPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          "RM 6.00",
-                          style: TextStyle(
+                        Text(
+                          "RM ${discountedPrice.toStringAsFixed(2)}",
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
@@ -221,7 +217,7 @@ class MerchantPage extends StatelessWidget {
                       ],
                     ),
                     onTap: () {
-                      // Open the Bottom Sheet we created earlier
+                      // Open Bottom Sheet to Add Item
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -233,63 +229,69 @@ class MerchantPage extends StatelessWidget {
                         builder:
                             (context) => ItemDetailsBottomSheet(
                               itemName: "Surplus Item #${index + 1}",
-                              price: 6.00,
+                              price: discountedPrice,
                             ),
                       );
                     },
                   ),
-                  const Divider(
-                    height: 1,
-                    indent: 16,
-                    endIndent: 16,
-                  ), // Separator line
+                  const Divider(height: 1, indent: 16, endIndent: 16),
                 ],
               );
             }, childCount: 6),
           ),
 
-          // Spacer so the last item isn't hidden behind the floating button
+          // Spacer for Bottom Bar
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
 
-      // 5. Floating "View Cart" Button
-      bottomSheet: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16.0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF1B5E20), // Dark Green
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CartScreen()),
-            );
-          },
-          child: const Text(
-            "View Cart (2 items) - RM 12.00",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+      // 4. Dynamic "View Cart" Button
+      bottomSheet: BlocBuilder<CartBloc, CartState>(
+        builder: (context, state) {
+          // If cart is empty, show nothing (Standard behavior)
+          print(
+            "🛒 UI BUILDER: Cart Item Count: ${state.itemCount}, Items: ${state.items.length}",
+          );
+
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
               color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
             ),
-          ),
-        ),
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1B5E20),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const CartScreen()),
+                );
+              },
+              child: Text(
+                // Display state directly to verify updates
+                "View Cart (${state.itemCount} items) - RM ${state.subtotal.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

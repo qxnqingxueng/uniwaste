@@ -27,7 +27,8 @@ class _CartScreenState extends State<CartScreen> {
           }
 
           double deliveryFee = _isDelivery ? 3.00 : 0.00;
-          double discount = _selectedVoucher != null ? 5.00 : 0.00; // Mock logic
+          double discount =
+              _selectedVoucher != null ? 5.00 : 0.00; // Mock logic
           double finalTotal = state.subtotal + deliveryFee - discount;
 
           return SingleChildScrollView(
@@ -43,11 +44,26 @@ class _CartScreenState extends State<CartScreen> {
                       // Toggle
                       Container(
                         padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Row(
                           children: [
-                            Expanded(child: _buildTab("Delivery", _isDelivery, () => setState(() => _isDelivery = true))),
-                            Expanded(child: _buildTab("Pick-Up", !_isDelivery, () => setState(() => _isDelivery = false))),
+                            Expanded(
+                              child: _buildTab(
+                                "Delivery",
+                                _isDelivery,
+                                () => setState(() => _isDelivery = true),
+                              ),
+                            ),
+                            Expanded(
+                              child: _buildTab(
+                                "Pick-Up",
+                                !_isDelivery,
+                                () => setState(() => _isDelivery = false),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -57,28 +73,33 @@ class _CartScreenState extends State<CartScreen> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 12),
 
                 // 2. ORDER ITEMS
+                // inside BlocBuilder<CartBloc, CartState>...
+
+                // FIND THIS PART (The Order Items Container)
                 Container(
                   color: Colors.white,
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text("Kafe Lestari", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context), // Go back to add items
-                            child: const Text("Add Items", style: TextStyle(color: Colors.green)),
-                          )
-                        ],
-                      ),
+                      // ... Header Row ...
                       const Divider(),
-                      ...state.items.map((item) => _buildCartItemTile(item)),
+
+                      // --- THE FIX: Use state.items ---
+                      if (state.items.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Center(child: Text("Cart is empty")),
+                        )
+                      else
+                        ...state.items
+                            .map((item) => _buildCartItemTile(item))
+                            .toList(),
+                      // --------------------------------
                     ],
                   ),
                 ),
@@ -91,7 +112,9 @@ class _CartScreenState extends State<CartScreen> {
                     // Navigate to Voucher Page and wait for result
                     final result = await Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const VoucherPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const VoucherPage(),
+                      ),
                     );
                     if (result != null) {
                       setState(() => _selectedVoucher = result);
@@ -102,12 +125,24 @@ class _CartScreenState extends State<CartScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        const Icon(Icons.local_offer_outlined, color: Colors.orange),
+                        const Icon(
+                          Icons.local_offer_outlined,
+                          color: Colors.orange,
+                        ),
                         const SizedBox(width: 12),
-                        const Text("Apply Voucher", style: TextStyle(fontWeight: FontWeight.w600)),
+                        const Text(
+                          "Apply Voucher",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
                         const Spacer(),
                         if (_selectedVoucher != null)
-                          Text(_selectedVoucher!, style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                          Text(
+                            _selectedVoucher!,
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         const Icon(Icons.chevron_right, color: Colors.grey),
                       ],
                     ),
@@ -122,12 +157,26 @@ class _CartScreenState extends State<CartScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _row("Subtotal", "RM ${state.subtotal.toStringAsFixed(2)}"),
-                      _row("Delivery Fee", "RM ${deliveryFee.toStringAsFixed(2)}"),
+                      _row(
+                        "Subtotal",
+                        "RM ${state.subtotal.toStringAsFixed(2)}",
+                      ),
+                      _row(
+                        "Delivery Fee",
+                        "RM ${deliveryFee.toStringAsFixed(2)}",
+                      ),
                       if (_selectedVoucher != null)
-                        _row("Voucher Discount", "-RM ${discount.toStringAsFixed(2)}", color: Colors.green),
+                        _row(
+                          "Voucher Discount",
+                          "-RM ${discount.toStringAsFixed(2)}",
+                          color: Colors.green,
+                        ),
                       const Divider(height: 24),
-                      _row("Total Payment", "RM ${finalTotal.toStringAsFixed(2)}", isBold: true),
+                      _row(
+                        "Total Payment",
+                        "RM ${finalTotal.toStringAsFixed(2)}",
+                        isBold: true,
+                      ),
                     ],
                   ),
                 ),
@@ -144,12 +193,21 @@ class _CartScreenState extends State<CartScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.green,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () {
               // TODO: Go to Payment
             },
-            child: const Text("Place Order", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Place Order",
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ),
@@ -166,10 +224,19 @@ class _CartScreenState extends State<CartScreen> {
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: isActive ? [const BoxShadow(color: Colors.black12, blurRadius: 4)] : [],
+          boxShadow:
+              isActive
+                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                  : [],
         ),
         child: Center(
-          child: Text(text, style: TextStyle(fontWeight: FontWeight.bold, color: isActive ? Colors.black : Colors.grey)),
+          child: Text(
+            text,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isActive ? Colors.black : Colors.grey,
+            ),
+          ),
         ),
       ),
     );
@@ -181,27 +248,42 @@ class _CartScreenState extends State<CartScreen> {
       children: [
         // Fake Map
         Container(
-          width: 80, height: 80,
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
             color: Colors.blue.shade50,
             borderRadius: BorderRadius.circular(8),
-            image: const DecorationImage(image: AssetImage('assets/images/map.jpg'), fit: BoxFit.cover),
+            image: const DecorationImage(
+              image: AssetImage('assets/images/map.jpg'),
+              fit: BoxFit.cover,
+            ),
           ),
-          child: const Center(child: Icon(Icons.location_on, color: Colors.red)),
+          child: const Center(
+            child: Icon(Icons.location_on, color: Colors.red),
+          ),
         ),
         const SizedBox(width: 12),
         const Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Kafe Lestari (Asian)", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                "Kafe Lestari (Asian)",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 4),
-              Text("Universiti Malaya, 50603 Kuala Lumpur", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text(
+                "Universiti Malaya, 50603 Kuala Lumpur",
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
               SizedBox(height: 8),
-              Text("Distance: 0.8 km", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(
+                "Distance: 0.8 km",
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              ),
             ],
           ),
-        )
+        ),
       ],
     );
   }
@@ -214,10 +296,16 @@ class _CartScreenState extends State<CartScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Delivery to: Kolej Kediaman 12", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("Est. Time: 15 - 20 mins (1.2 km)", style: TextStyle(color: Colors.grey, fontSize: 13)),
+            Text(
+              "Delivery to: Kolej Kediaman 12",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              "Est. Time: 15 - 20 mins (1.2 km)",
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
           ],
-        )
+        ),
       ],
     );
   }
@@ -229,34 +317,65 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(4)),
-            child: Text("${cartItem.quantity}x", style: const TextStyle(fontWeight: FontWeight.bold)),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              "${cartItem.quantity}x",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(cartItem.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  cartItem.name,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 if (cartItem.notes.isNotEmpty)
-                  Text("Note: ${cartItem.notes}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                  Text(
+                    "Note: ${cartItem.notes}",
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                  ),
               ],
             ),
           ),
-          Text("RM ${(cartItem.price * cartItem.quantity).toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(
+            "RM ${(cartItem.price * cartItem.quantity).toStringAsFixed(2)}",
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
-  Widget _row(String label, String value, {bool isBold = false, Color color = Colors.black}) {
+  Widget _row(
+    String label,
+    String value, {
+    bool isBold = false,
+    Color color = Colors.black,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          Text(value, style: TextStyle(fontWeight: isBold ? FontWeight.bold : FontWeight.normal, color: color)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

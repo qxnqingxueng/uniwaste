@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
+import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 
 class ItemDetailsBottomSheet extends StatefulWidget {
   final String itemName;
@@ -27,10 +30,10 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min, // Wrap content height
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Handle Bar (Visual cue)
+          // Handle Bar
           Center(
             child: Container(
               width: 40,
@@ -43,15 +46,17 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
           ),
           const SizedBox(height: 20),
 
-          // 2. Title & Price
+          // Title & Price
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                widget.itemName,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  widget.itemName,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Text(
@@ -71,7 +76,7 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
           ),
           const Divider(height: 30),
 
-          // 3. Special Instructions
+          // Instructions
           const Text(
             "Special Instructions",
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -80,7 +85,7 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
           TextField(
             controller: _noteController,
             decoration: InputDecoration(
-              hintText: "E.g. No spicy, less rice...",
+              hintText: "E.g. No spicy...",
               filled: true,
               fillColor: Colors.grey[100],
               border: OutlineInputBorder(
@@ -91,10 +96,9 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
           ),
           const SizedBox(height: 20),
 
-          // 4. Quantity & Add Button
+          // Quantity & Add Button
           Row(
             children: [
-              // Quantity Counter
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
@@ -126,7 +130,6 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
               ),
               const SizedBox(width: 16),
 
-              // Add to Cart Button
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
@@ -137,7 +140,21 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
                     ),
                   ),
                   onPressed: () {
-                    // TODO: Logic to add to Cart Bloc
+                    // --- THE FIX: Send Data to Bloc ---
+                    final newItem = CartItemModel(
+                      id: widget.itemName,
+                      name: widget.itemName,
+                      price: widget.price,
+                      quantity: _quantity,
+                      notes: _noteController.text,
+                      image: "assets/images/merchant.jpg",
+                    );
+                    print(
+                      "👇 SENDING ADD EVENT: ${newItem.name} x${newItem.quantity}",
+                    ); // Add this debug log
+                    context.read<CartBloc>().add(AddItem(newItem));
+                    // ----------------------------------
+
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -159,7 +176,7 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 20), // Bottom padding
+          const SizedBox(height: 20),
         ],
       ),
     );
