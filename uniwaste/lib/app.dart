@@ -7,7 +7,6 @@ import 'app_view.dart';
 
 class MyApp extends StatelessWidget {
   final UserRepository userRepository;
-
   const MyApp(this.userRepository, {super.key});
 
   @override
@@ -15,11 +14,11 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         RepositoryProvider.value(value: userRepository),
-        BlocProvider<AuthenticationBloc>(
-          create:
-              (context) => AuthenticationBloc(userRepository: userRepository),
+        BlocProvider(
+          create: (_) => AuthenticationBloc(userRepository: userRepository),
         ),
 
+        // THIS IS THE CRITICAL LINE FOR YOUR CART
         BlocProvider(create: (_) => CartBloc()),
       ],
       child: const MyAppView(),

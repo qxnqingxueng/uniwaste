@@ -229,7 +229,9 @@ class MerchantPage extends StatelessWidget {
                         builder:
                             (context) => ItemDetailsBottomSheet(
                               itemName: "Surplus Item #${index + 1}",
-                              price: discountedPrice,
+                              price: 6.00, // Or your variable
+                              // --- ADD THIS LINE ---
+                              merchantName: merchantName,
                             ),
                       );
                     },

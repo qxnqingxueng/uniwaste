@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
+import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 
 class ItemDetailsBottomSheet extends StatefulWidget {
   final String itemName;
   final double price;
+  final String merchantName; // Pass this in!
 
   const ItemDetailsBottomSheet({
     super.key,
     required this.itemName,
     required this.price,
+    required this.merchantName,
   });
 
   @override
@@ -20,6 +23,20 @@ class ItemDetailsBottomSheet extends StatefulWidget {
 class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
   int _quantity = 1;
   final TextEditingController _noteController = TextEditingController();
+
+  // Helper to create the item object
+  CartItemModel _createItem() {
+    return CartItemModel(
+      id: "${widget.merchantName}-${widget.itemName}", // Unique ID per merchant item
+      name: widget.itemName,
+      price: widget.price,
+      quantity: _quantity,
+      notes: _noteController.text,
+      image: "assets/images/merchant.jpg",
+      merchantName: widget.merchantName,
+      merchantLocation: "Universiti Malaya",
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +91,7 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
             "Surplus Special: 50% Off applied.",
             style: TextStyle(color: Colors.grey),
           ),
-          const Divider(height: 30),
+          const Divider(height: 20),
 
           // Instructions
           const Text(
@@ -96,18 +113,23 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
           ),
           const SizedBox(height: 20),
 
-          // Quantity & Add Button
+          // Quantity
           Row(
             children: [
+              const Text(
+                "Quantity",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const Spacer(),
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove),
+                      icon: const Icon(Icons.remove, size: 20),
                       onPressed: () {
                         if (_quantity > 1) setState(() => _quantity--);
                       },
@@ -120,7 +142,11 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.add, color: Colors.green),
+                      icon: const Icon(
+                        Icons.add,
+                        size: 20,
+                        color: Colors.green,
+                      ),
                       onPressed: () {
                         setState(() => _quantity++);
                       },
@@ -128,47 +154,88 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+            ],
+          ),
+          const SizedBox(height: 24),
 
+          // --- SHOPEE STYLE ACTION BAR ---
+          Row(
+            children: [
+              // 1. Chat Button
+              InkWell(
+                onTap: () {
+                  print("Chat clicked");
+                  // Navigate to chat
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green),
+                  ),
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: Colors.green,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // 2. Add to Cart (Outlined)
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.green),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    context.read<CartBloc>().add(AddItem(_createItem()));
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Added to Cart")),
+                    );
+                  },
+                  child: const Text(
+                    "Add to Cart",
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
+              // 3. Buy Now (Solid)
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                   onPressed: () {
-                    // --- THE FIX: Send Data to Bloc ---
-                    final newItem = CartItemModel(
-                      id: widget.itemName,
-                      name: widget.itemName,
-                      price: widget.price,
-                      quantity: _quantity,
-                      notes: _noteController.text,
-                      image: "assets/images/merchant.jpg",
-                    );
-                    print(
-                      "👇 SENDING ADD EVENT: ${newItem.name} x${newItem.quantity}",
-                    ); // Add this debug log
-                    context.read<CartBloc>().add(AddItem(newItem));
-                    // ----------------------------------
-
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          "Added $_quantity ${widget.itemName} to cart",
-                        ),
-                      ),
-                    );
+                    // Add item AND Go to Cart immediately
+                    context.read<CartBloc>().add(AddItem(_createItem()));
+                    Navigator.pop(context); // Close sheet
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CartScreen()),
+                    ); // Go to Cart
                   },
                   child: const Text(
-                    "Add to Cart",
+                    "Buy Now",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -176,7 +243,7 @@ class _ItemDetailsBottomSheetState extends State<ItemDetailsBottomSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
         ],
       ),
     );

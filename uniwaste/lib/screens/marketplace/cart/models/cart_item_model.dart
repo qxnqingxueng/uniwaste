@@ -6,6 +6,10 @@ class CartItemModel {
   final String notes;
   final String image;
 
+  // NEW: Store merchant info so we can group them later
+  final String merchantName;
+  final String merchantLocation;
+
   CartItemModel({
     required this.id,
     required this.name,
@@ -13,6 +17,8 @@ class CartItemModel {
     required this.quantity,
     this.notes = '',
     required this.image,
+    required this.merchantName, // Required
+    this.merchantLocation = "UM Campus", // Default
   });
 
   double get total => price * quantity;

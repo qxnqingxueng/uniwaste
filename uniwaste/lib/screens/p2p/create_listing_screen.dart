@@ -202,7 +202,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
               // 3. Food Type
               DropdownButtonFormField<String>(
-                value: _foodType,
+                initialValue: _foodType,
                 decoration: const InputDecoration(labelText: "Food Type", border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'cooked', child: Text("Cooked Meal")),

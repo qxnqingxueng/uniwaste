@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
+import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
+import 'package:uniwaste/screens/marketplace/checkout/edit_address_screen.dart';
+import 'package:uniwaste/screens/marketplace/checkout/models/delivery_info.dart';
 import 'package:uniwaste/screens/marketplace/widgets/marketplace_app_bar.dart';
-import 'package:uniwaste/screens/marketplace/checkout/widgets/voucher_page.dart'; // We will create this below
+import 'package:uniwaste/screens/marketplace/checkout/edit_address_screen.dart';
+import 'package:uniwaste/screens/marketplace/checkout/models/delivery_info.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -12,318 +16,337 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  bool _isDelivery = true;
-  String? _selectedVoucher; // To store selected voucher
+  // Store Delivery preference per Merchant (Key: MerchantName, Value: isDelivery)
+  final Map<String, bool> _merchantDeliveryStatus = {};
+
+  DeliveryInfo _userInfo = DeliveryInfo();
+
+  Map<String, List<CartItemModel>> _groupItemsByMerchant(
+    List<CartItemModel> items,
+  ) {
+    final Map<String, List<CartItemModel>> grouped = {};
+    for (var item in items) {
+      if (!grouped.containsKey(item.merchantName)) {
+        grouped[item.merchantName] = [];
+        // Default to Delivery (true) for new merchants
+        if (!_merchantDeliveryStatus.containsKey(item.merchantName)) {
+          _merchantDeliveryStatus[item.merchantName] = true;
+        }
+      }
+      grouped[item.merchantName]!.add(item);
+    }
+    return grouped;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: const MarketplaceAppBar(title: "My Cart", showCart: false),
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: const MarketplaceAppBar(title: "Checkout", showCart: false),
+
       body: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
           if (state.items.isEmpty) {
             return const Center(child: Text("Your cart is empty"));
           }
 
-          double deliveryFee = _isDelivery ? 3.00 : 0.00;
-          double discount =
-              _selectedVoucher != null ? 5.00 : 0.00; // Mock logic
-          double finalTotal = state.subtotal + deliveryFee - discount;
+          final groupedItems = _groupItemsByMerchant(state.items);
+
+          // Calculate Grand Total
+          double grandTotal = 0;
+          groupedItems.forEach((merchantName, items) {
+            double merchantSubtotal = items.fold(
+              0,
+              (sum, item) => sum + item.total,
+            );
+            double shipping =
+                _merchantDeliveryStatus[merchantName]! ? 3.00 : 0.00;
+            grandTotal += (merchantSubtotal + shipping);
+          });
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 100),
             child: Column(
               children: [
-                // 1. DELIVERY TOGGLE & MAP
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      // Toggle
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _buildTab(
-                                "Delivery",
-                                _isDelivery,
-                                () => setState(() => _isDelivery = true),
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildTab(
-                                "Pick-Up",
-                                !_isDelivery,
-                                () => setState(() => _isDelivery = false),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Dynamic Map/Address Area
-                      _isDelivery ? _buildDeliveryInfo() : _buildPickupInfo(),
-                    ],
-                  ),
-                ),
+                // 1. ADDRESS BAR (Shopee Style) - Global for Delivery
+                _buildAddressHeader(),
 
-                const SizedBox(height: 12),
+                // 2. ITEMS LIST (Grouped by Merchant)
+                ...groupedItems.entries.map((entry) {
+                  return _buildShopeeMerchantSection(entry.key, entry.value);
+                }).toList(),
 
-                // 2. ORDER ITEMS
-                // inside BlocBuilder<CartBloc, CartState>...
+                // 3. PAYMENT METHOD SECTION (Shopee Style)
+                _buildPaymentMethodSection(),
 
-                // FIND THIS PART (The Order Items Container)
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ... Header Row ...
-                      const Divider(),
-
-                      // --- THE FIX: Use state.items ---
-                      if (state.items.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Center(child: Text("Cart is empty")),
-                        )
-                      else
-                        ...state.items
-                            .map((item) => _buildCartItemTile(item))
-                            .toList(),
-                      // --------------------------------
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // 3. VOUCHERS / OFFERS
-                GestureDetector(
-                  onTap: () async {
-                    // Navigate to Voucher Page and wait for result
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const VoucherPage(),
-                      ),
-                    );
-                    if (result != null) {
-                      setState(() => _selectedVoucher = result);
-                    }
-                  },
-                  child: Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.local_offer_outlined,
-                          color: Colors.orange,
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          "Apply Voucher",
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const Spacer(),
-                        if (_selectedVoucher != null)
-                          Text(
-                            _selectedVoucher!,
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        const Icon(Icons.chevron_right, color: Colors.grey),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // 4. BILL SUMMARY
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _row(
-                        "Subtotal",
-                        "RM ${state.subtotal.toStringAsFixed(2)}",
-                      ),
-                      _row(
-                        "Delivery Fee",
-                        "RM ${deliveryFee.toStringAsFixed(2)}",
-                      ),
-                      if (_selectedVoucher != null)
-                        _row(
-                          "Voucher Discount",
-                          "-RM ${discount.toStringAsFixed(2)}",
-                          color: Colors.green,
-                        ),
-                      const Divider(height: 24),
-                      _row(
-                        "Total Payment",
-                        "RM ${finalTotal.toStringAsFixed(2)}",
-                        isBold: true,
-                      ),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 100), // Space for bottom bar
               ],
             ),
           );
         },
       ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          color: Colors.white,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+
+      // 4. BOTTOM CHECKOUT BAR
+      bottomNavigationBar: BlocBuilder<CartBloc, CartState>(
+        builder: (context, state) {
+          // Re-calculate total for display (same logic as above)
+          final groupedItems = _groupItemsByMerchant(state.items);
+          double grandTotal = 0;
+          groupedItems.forEach((merchantName, items) {
+            double merchantSubtotal = items.fold(
+              0,
+              (sum, item) => sum + item.total,
+            );
+            double shipping =
+                _merchantDeliveryStatus[merchantName]! ? 3.00 : 0.00;
+            grandTotal += (merchantSubtotal + shipping);
+          });
+
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  offset: const Offset(0, -2),
+                  blurRadius: 5,
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        "Total Payment",
+                        style: TextStyle(fontSize: 12),
+                      ),
+                      Text(
+                        "RM ${grandTotal.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                          color: Color(0xFFE94F37), // Shopee Orange
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // TODO: Place Order Logic
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFE94F37),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    child: const Text(
+                      "Place Order",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            onPressed: () {
-              // TODO: Go to Payment
-            },
-            child: const Text(
-              "Place Order",
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
   // --- WIDGETS ---
 
-  Widget _buildTab(String text, bool isActive, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow:
-              isActive
-                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
-                  : [],
-        ),
-        child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: isActive ? Colors.black : Colors.grey,
+  // 1. Merchant Section (Like Shopee)
+  Widget _buildShopeeMerchantSection(
+    String merchantName,
+    List<CartItemModel> items,
+  ) {
+    bool isDelivery = _merchantDeliveryStatus[merchantName] ?? true;
+    double subtotal = items.fold(0, (sum, item) => sum + item.total);
+    double shippingFee = isDelivery ? 3.00 : 0.00;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // A. Merchant Header
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              children: [
+                const Icon(Icons.storefront, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  merchantName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
+          const Divider(height: 1, thickness: 0.5),
+
+          // B. Items List
+          ...items.map((item) => _buildItemRow(item)).toList(),
+
+          const Divider(height: 1, thickness: 0.5),
+
+          // C. Message to Seller
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                const Text("Message:", style: TextStyle(fontSize: 14)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: const Text(
+                    "Please leave message...",
+                    textAlign: TextAlign.right,
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 0.5),
+
+          // D. Shipping Option (Clickable)
+          InkWell(
+            onTap: () {
+              // Toggle Delivery Mode for THIS merchant only
+              setState(() {
+                _merchantDeliveryStatus[merchantName] = !isDelivery;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              color: const Color(
+                0xFFF8FBF8,
+              ), // Slight green tint for shipping area
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Shipping Option",
+                        style: TextStyle(
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      Text(
+                        isDelivery ? "RM 3.00" : "Free",
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isDelivery
+                                  ? "Standard Delivery"
+                                  : "Self Collection Point",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              isDelivery
+                                  ? "Receive by tomorrow"
+                                  : "Pick up at $merchantName",
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: Colors.grey,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Divider(height: 1, thickness: 0.5),
+
+          // E. Merchant Total
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Order Total (${items.length} items):",
+                  style: const TextStyle(fontSize: 13),
+                ),
+                Text(
+                  "RM ${(subtotal + shippingFee).toStringAsFixed(2)}",
+                  style: const TextStyle(
+                    color: Color(0xFFE94F37),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPickupInfo() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Fake Map
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(8),
-            image: const DecorationImage(
-              image: AssetImage('assets/images/map.jpg'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: const Center(
-            child: Icon(Icons.location_on, color: Colors.red),
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Kafe Lestari (Asian)",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 4),
-              Text(
-                "Universiti Malaya, 50603 Kuala Lumpur",
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              SizedBox(height: 8),
-              Text(
-                "Distance: 0.8 km",
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDeliveryInfo() {
-    return const Row(
-      children: [
-        Icon(Icons.access_time_filled, color: Colors.green),
-        SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Delivery to: Kolej Kediaman 12",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              "Est. Time: 15 - 20 mins (1.2 km)",
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCartItemTile(cartItem) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+  Widget _buildItemRow(CartItemModel item) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      color: const Color(0xFFFAFAFA), // Slightly darker background
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            width: 80,
+            height: 80,
             decoration: BoxDecoration(
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              "${cartItem.quantity}x",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              image: const DecorationImage(
+                image: AssetImage(
+                  'assets/images/merchant.jpg',
+                ), // Replace with item.image
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -332,49 +355,139 @@ class _CartScreenState extends State<CartScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  cartItem.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14),
                 ),
-                if (cartItem.notes.isNotEmpty)
-                  Text(
-                    "Note: ${cartItem.notes}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                const SizedBox(height: 4),
+                if (item.notes.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: Text(
+                      "Note: ${item.notes}",
+                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                    ),
                   ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "RM ${item.price.toStringAsFixed(2)}",
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    Text(
+                      "x${item.quantity}",
+                      style: const TextStyle(color: Colors.grey, fontSize: 14),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ),
-          Text(
-            "RM ${(cartItem.price * cartItem.quantity).toStringAsFixed(2)}",
-            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ],
       ),
     );
   }
 
-  Widget _row(
-    String label,
-    String value, {
-    bool isBold = false,
-    Color color = Colors.black,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+  Widget _buildAddressHeader() {
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EditAddressScreen(currentInfo: _userInfo),
+          ),
+        );
+        if (result != null && result is DeliveryInfo)
+          setState(() => _userInfo = result);
+      },
+      child: Container(
+        color: Colors.white,
+        child: Column(
+          children: [
+            Container(
+              height: 4,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue, Colors.red],
+                  stops: [0.5, 0.5],
+                  tileMode: TileMode.repeated,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    color: Color(0xFFE94F37),
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "${_userInfo.name} | ${_userInfo.phone}",
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          _userInfo.address,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodSection() {
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      color: Colors.white,
+      padding: const EdgeInsets.all(12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            ),
+          const Row(
+            children: [
+              Icon(Icons.monetization_on_outlined, color: Color(0xFFE94F37)),
+              SizedBox(width: 8),
+              Text("Payment Method", style: TextStyle(fontSize: 14)),
+            ],
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              color: color,
-            ),
+          Row(
+            children: const [
+              Text(
+                "ShopeePay",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              SizedBox(width: 4),
+              Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+            ],
           ),
         ],
       ),

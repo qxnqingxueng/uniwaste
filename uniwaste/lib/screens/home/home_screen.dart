@@ -60,8 +60,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Icon(
             icon,
             color: isSelected
-                ? Color.fromRGBO(119, 136, 115, 1.0)
-                : Color.fromRGBO(208, 209, 208, 1),
+                ? const Color.fromRGBO(119, 136, 115, 1.0)
+                : const Color.fromRGBO(208, 209, 208, 1),
             size: 28,
           ),
           Text(
@@ -69,8 +69,8 @@ class _HomeScreenState extends State<HomeScreen> {
             style: TextStyle(
               fontSize: 10,
               color: isSelected
-                  ? Color.fromRGBO(119, 136, 115, 1.0)
-                  : Color.fromRGBO(208, 209, 208, 1),
+                  ? const Color.fromRGBO(119, 136, 115, 1.0)
+                  : const Color.fromRGBO(208, 209, 208, 1),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -119,28 +119,28 @@ class _HomeScreenState extends State<HomeScreen> {
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        children: [
+        children: const [
           // Dashboard
-          const DashboardPage(),
+          DashboardPage(),
 
           // Cart / Waste
           Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
+            padding: EdgeInsets.only(bottom: 100),
+            child: Center(
                 child: Text("My Cart Page\n(Add your widgets here)")),
           ),
 
           // Message
           Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
+            padding: EdgeInsets.only(bottom: 100),
+            child: Center(
                 child: Text("Message Page\n(Add your widgets here)")),
           ),
 
           // Profile
           Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
+            padding: EdgeInsets.only(bottom: 100),
+            child: Center(
                 child: Text("My Cart Page\n(Add your widgets here)")),
           ),
 
@@ -181,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(padding: const EdgeInsets.only(left: 5)),
+                  const Padding(padding: EdgeInsets.only(left: 5)),
                   _buildNavBtn(0, Icons.home, "Home"),
                   // Add space between Home and Cart
                   const SizedBox(width: 25),
@@ -197,7 +197,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Add space between Chat and Profile
                   const SizedBox(width: 25),
                   _buildNavBtn(3, Icons.person, "Profile"),
-                  Padding(padding: const EdgeInsets.only(right: 5))
+                  const Padding(padding: EdgeInsets.only(right: 5))
                 ],
               ),
             ],
@@ -210,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 60,
         width: 60,
         child: FloatingActionButton(
-          backgroundColor: Color.fromRGBO(119, 136, 115, 1.0),
+          backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
           elevation: 0,
           onPressed: () => debugPrint("Qr Button pressed."),
           shape: RoundedRectangleBorder(

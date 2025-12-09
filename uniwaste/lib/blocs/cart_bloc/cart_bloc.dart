@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 
-// EVENTS
+// --- EVENTS ---
 abstract class CartEvent extends Equatable {
   @override
   List<Object?> get props => [];
@@ -15,18 +15,12 @@ class AddItem extends CartEvent {
   List<Object?> get props => [item];
 }
 
-class RemoveItem extends CartEvent {
-  final String itemId;
-  RemoveItem(this.itemId);
-}
-
 class ClearCart extends CartEvent {}
 
-// STATES
+// --- STATE ---
 class CartState extends Equatable {
   final List<CartItemModel> items;
-  // This 'version' integer effectively forces a rebuild on every change
-  final int version;
+  final int version; // Forces UI rebuild
 
   const CartState({this.items = const [], this.version = 0});
 
@@ -34,24 +28,21 @@ class CartState extends Equatable {
   int get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
 
   @override
-  List<Object?> get props => [items, version]; // Watching 'version' ensures updates are caught
+  List<Object?> get props => [items, version];
 }
 
-// BLOC LOGIC
+// --- BLOC ---
 class CartBloc extends Bloc<CartEvent, CartState> {
   CartBloc() : super(const CartState()) {
     on<AddItem>((event, emit) {
-      print("🛒 BLOC: AddItem Triggered -> ${event.item.name}");
-
-      // Create a NEW list instance (Critical for Bloc to detect change)
       final List<CartItemModel> updatedList = List.from(state.items);
 
+      // Check if item already exists
       final index = updatedList.indexWhere((i) => i.id == event.item.id);
 
       if (index >= 0) {
-        print("🛒 BLOC: Updating existing item quantity");
+        // Update quantity if exists
         final existing = updatedList[index];
-        // Replace the item with a new copy with updated quantity
         updatedList[index] = CartItemModel(
           id: existing.id,
           name: existing.name,
@@ -59,18 +50,15 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           quantity: existing.quantity + event.item.quantity,
           notes: event.item.notes,
           image: existing.image,
+          merchantName: existing.merchantName,
         );
       } else {
-        print("🛒 BLOC: Adding new item to list");
+        // Add new if not
         updatedList.add(event.item);
       }
 
-      // Emit new state with incremented version number
+      // Emit new state with updated Version number
       emit(CartState(items: updatedList, version: state.version + 1));
-
-      print(
-        "🛒 BLOC: New State Emitted. Count: ${updatedList.length}, Version: ${state.version + 1}",
-      );
     });
 
     on<ClearCart>((event, emit) => emit(const CartState(items: [])));
