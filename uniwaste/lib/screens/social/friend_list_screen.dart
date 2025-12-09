@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'dart:convert';      // for base64Decode
 import 'dart:typed_data';   // for Uint8List / MemoryImage
 import 'friend_profile_screen.dart';
+import 'package:uniwaste/services/chat_service.dart';
+import 'package:uniwaste/screens/social/chat_detail_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 
 class FriendListScreen extends StatefulWidget {
   const FriendListScreen({super.key});
@@ -16,6 +21,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
   static const Color _accent = Color(0xFFA1BC98);
   static const Color _bgTop = Color(0xFFF1F3E0);
 
+  final ChatService _chatService = ChatService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -33,10 +39,19 @@ class _FriendListScreenState extends State<FriendListScreen> {
   // LOAD FRIENDS + REQUESTS
   // ---------------------------------------------------------------------------
   Future<void> _loadFriends() async {
+    if (!mounted) return;
+
+    // show loading spinner while we fetch
+    setState(() {
+      _isLoading = true;
+    });
+
     final user = _auth.currentUser;
     if (user == null) {
       setState(() {
         _isLoading = false;
+        _friendRequests = [];
+        _friends = [];
       });
       return;
     }
@@ -65,11 +80,24 @@ class _FriendListScreenState extends State<FriendListScreen> {
               final email = (d['email'] ?? '') as String;
               final name =
                   (d['name'] ?? (email.isNotEmpty ? email : 'Unknown')) as String;
+
+              String? avatarBase64 = d['photoBase64'] as String?;
+              MemoryImage? avatarImage;
+              if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+                try {
+                  final bytes = base64Decode(avatarBase64);
+                  avatarImage = MemoryImage(bytes);  // 👈 create provider once
+                } catch (e) {
+                  debugPrint('Error decoding avatar for ${s.id}: $e');
+                }
+              }
+
               return _Friend(
                 uid: s.id,
                 name: name,
                 email: email,
-                avatarBase64: d['photoBase64'] as String?,   // avatar
+                avatarBase64: avatarBase64,
+                avatarImage: avatarImage,           // 👈 pass in
               );
             })
             .toList();
@@ -78,17 +106,39 @@ class _FriendListScreenState extends State<FriendListScreen> {
       final requests = await fetchUsers(incomingIds);
       final friends = await fetchUsers(friendIds);
 
+      // 👇 Pre-cache all friend avatars before we turn loading off
+      await _precacheAvatars([...requests, ...friends]);
+
       if (!mounted) return;
       setState(() {
         _friendRequests = requests;
         _friends = friends;
-        _isLoading = false;
+         _isLoading = false; 
       });
     } catch (e) {
       debugPrint('Error loading friends: $e');
-      if (!mounted) return;
-      setState(() => _isLoading = false);
-      _showSnack('Failed to load friends.');
+      if (mounted) {
+        _showSnack('Failed to load friends.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;   // 🔥 hide loader when done
+        });
+      }
+    }
+  }
+
+  Future<void> _precacheAvatars(List<_Friend> users) async {
+    for (final f in users) {
+      final img = f.avatarImage;
+      if (img == null) continue;
+
+      try {
+        await precacheImage(img, context);
+      } catch (e) {
+        debugPrint('Error precaching avatar for ${f.uid}: $e');
+      }
     }
   }
 
@@ -233,7 +283,47 @@ class _FriendListScreenState extends State<FriendListScreen> {
         return SafeArea(
           child: Wrap(
             children: [
-              // 👉 NEW: View profile
+
+              // Chat with friend
+              ListTile(
+                leading: const Icon(Icons.chat_bubble_outline),
+                title: const Text('Chat with friend'),
+                onTap: () async {
+                  Navigator.of(sheetCtx).pop();
+
+                  // Get current user from AuthenticationBloc
+                  final authState = context.read<AuthenticationBloc>().state;
+                  final currentUser = authState.user!;
+
+                  final String currentUserId = currentUser.userId;
+                  final String currentUserName = currentUser.name; // or displayName, adjust field
+                  final String otherUserId = friend.uid;
+
+                  final chatId = await _chatService.getOrCreateChat(
+                    userAId: currentUserId,
+                    userBId: otherUserId,
+                    currentUserName: currentUserName,
+                    otherUserName: friend.name,
+                  );
+
+                  if (!mounted) return;
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ChatDetailScreen(
+                        chatId: chatId,
+                        currentUserId: currentUserId,
+                        otherUserId: otherUserId,
+                        otherUserName: friend.name,
+                        itemName: 'Friend chat', // or data from Firestore if you want
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              // 👉 View profile
               ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('View profile'),
@@ -252,7 +342,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
                 },
               ),
 
-              // Existing: Remove friend (unchanged logic)
+              // 👉 Remove friend
               ListTile(
                 leading: const Icon(Icons.person_remove_outlined),
                 title: const Text('Remove friend'),
@@ -300,6 +390,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
       },
     );
   }
+
 
   // ---------------------------------------------------------------------------
   // ADD FRIEND DIALOG
@@ -358,13 +449,24 @@ class _FriendListScreenState extends State<FriendListScreen> {
                     });
                   } else {
                     final d = doc.data();
-                    final name =
-                        (d['name'] ?? d['email'] ?? 'Unknown') as String;
+                    final name = (d['name'] ?? d['email'] ?? 'Unknown') as String;
+                    final String? avatarBase64 = d['photoBase64'] as String?;
+                    MemoryImage? avatarImage;
+                    if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+                      try {
+                        final bytes = base64Decode(avatarBase64);
+                        avatarImage = MemoryImage(bytes);
+                      } catch (e) {
+                        debugPrint('Error decoding avatar in dialog: $e');
+                      }
+                    }
+
                     final friend = _Friend(
                       uid: doc.id,
                       name: name,
                       email: (d['email'] ?? '') as String,
-                      avatarBase64: d['photoBase64'] as String?,
+                      avatarBase64: avatarBase64,
+                      avatarImage: avatarImage,   // 👈 pass it here
                     );
 
                     final alreadyFriend =
@@ -836,21 +938,32 @@ class _FriendListScreenState extends State<FriendListScreen> {
   }
 
   Widget _buildAvatar(_Friend friend, {double radius = 20}) {
-    final String? base64 = friend.avatarBase64;
+    // 1. If we already have a cached image provider, use it
+    if (friend.avatarImage != null) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: _accent.withOpacity(0.2),
+        backgroundImage: friend.avatarImage!,
+      );
+    }
 
+    // 2. (Optional) Fallback: if only base64 is present but no image –
+    //    this can happen for some temporary objects like search result.
+    final String? base64 = friend.avatarBase64;
     if (base64 != null && base64.isNotEmpty) {
       try {
-        final Uint8List bytes = base64Decode(base64);
+        final bytes = base64Decode(base64);
         return CircleAvatar(
           radius: radius,
           backgroundColor: _accent.withOpacity(0.2),
           backgroundImage: MemoryImage(bytes),
         );
       } catch (_) {
-        // fall back to initial
+        // ignore and fall back to initial
       }
     }
 
+    // 3. Final fallback: initial letter
     final String initial =
         friend.name.trim().isNotEmpty ? friend.name.trim()[0].toUpperCase() : '?';
 
@@ -881,11 +994,13 @@ class _Friend {
   final String name;
   final String email;
   final String? avatarBase64;
+  final MemoryImage? avatarImage;
 
   _Friend({
     required this.uid,
     required this.name,
     required this.email,
     this.avatarBase64,
+    this.avatarImage,   
   });
 }
