@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -132,6 +133,30 @@ class ChatService {
       'lastMessage': message,
       'lastMessageTime': FieldValue.serverTimestamp(),
     });
+  }
+
+  /// Delete a whole chat (all messages + chat doc).
+  /// ⚠️ This removes the conversation for BOTH users.
+  Future<void> deleteChat(String chatId) async {
+    try {
+      final chatRef = _db.collection('chats').doc(chatId);
+
+      // 1. Delete all messages in subcollection
+      final messagesSnap = await chatRef.collection('messages').get();
+
+      final batch = _db.batch();
+      for (final doc in messagesSnap.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // 2. Delete chat document itself
+      batch.delete(chatRef);
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Error deleting chat $chatId: $e');
+      rethrow; // let UI handle error if needed
+    }
   }
 
   Stream<QuerySnapshot> getMessages(String chatId) {
