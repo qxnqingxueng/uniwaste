@@ -99,7 +99,7 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
+        children: [
           FeedTab(), // Separate Feed component
           ChatScreen(), // Your existing Chat screen
         ],

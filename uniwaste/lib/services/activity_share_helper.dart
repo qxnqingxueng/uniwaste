@@ -1,4 +1,3 @@
-// lib/services/activity_share_helper.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:uniwaste/services/activity_service.dart';
@@ -9,7 +8,20 @@ class ActivityShareHelper {
   static final ActivityService _activityService = ActivityService();
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Generic helper:
+  /// Helper to get user's display name from /users collection
+  static Future<String?> _fetchUserName(String userId) async {
+    try {
+      final snap = await _db.collection('users').doc(userId).get();
+      if (!snap.exists) return null;
+      final data = snap.data() as Map<String, dynamic>;
+
+      // 🔧 adjust these keys if your user doc uses different field names
+      return (data['name'] ?? data['displayName'] ?? data['username']) as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// 1. (Optionally) record an activity
   /// 2. Ask user if they want to share it to Feed
   /// 3. If yes → create a feed post
@@ -21,7 +33,8 @@ class ActivityShareHelper {
     required int points,
     required String type,                  // e.g. 'p2p_free', 'bin', 'merchant'
     Map<String, dynamic>? extra,           // any extra info
-    bool createActivity = true,            // <-- NEW: default true
+    bool createActivity = true,
+    String? userDisplayName,               // optional: you can still pass it
   }) async {
     String? activityId;
 
@@ -65,16 +78,42 @@ class ActivityShareHelper {
 
     if (shouldShare != true) return;
 
-    // 3. Create a simple feed post
+    // 3. Resolve the display name:
+    //    1) prefer userDisplayName passed in
+    //    2) else fetch from /users
+    //    3) fallback "You"
+    final resolvedName =
+        userDisplayName ?? await _fetchUserName(userId) ?? 'You';
+
+    // Turn "You claimed a" -> "Jun claimed a"
+    String _toFeedText(String raw) {
+      if (raw.startsWith('You ')) {
+        return raw.replaceFirst('You ', '$resolvedName ');
+      }
+      if (raw.startsWith('you ')) {
+        return raw.replaceFirst('you ', '$resolvedName ');
+      }
+      return raw;
+    }
+
+    final feedTitle = _toFeedText(title);
+    final feedDescription = _toFeedText(description);
+
+    // 4. Create feed post doc
     await _db.collection('feed_posts').add({
       'userId': userId,
-      'activityId': activityId,        // may be null if createActivity == false
-      'title': title,
-      'description': description,
+      'userName': resolvedName,   // 👈 now ALWAYS filled
+      'activityId': activityId,
+      'title': feedTitle,         // 👈 "Jun claimed a"
+      'description': feedDescription, // 👈 "Jun received food from Daidi."
+      'rawTitle': title,
+      'rawDescription': description,
       'points': points,
       'type': type,
       'extra': extra ?? {},
       'createdAt': FieldValue.serverTimestamp(),
+      'likesCount': 0,
+      'likedBy': <String>[],
     });
 
     if (context.mounted) {
@@ -84,3 +123,5 @@ class ActivityShareHelper {
     }
   }
 }
+
+
