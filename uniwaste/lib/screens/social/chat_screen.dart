@@ -143,20 +143,26 @@ class ChatScreen extends StatelessWidget {
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: const Color.fromRGBO(210, 220, 182, 1),
-                      backgroundImage: imageProvider, // Use the pre-cached provider
+                      backgroundImage: imageProvider, // pre-cached provider
                       child: imageProvider == null
-                          ? Text(otherName.isNotEmpty
-                              ? otherName[0].toUpperCase()
-                              : "?")
+                          ? Text(
+                              otherName.isNotEmpty
+                                  ? otherName[0].toUpperCase()
+                                  : "?",
+                            )
                           : null,
                     ),
-                    title: Text(otherName,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      otherName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Text(
                       data['lastMessage'] ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+
+                    // 👉 Tap: open chat as before
                     onTap: () {
                       Navigator.push(
                         context,
@@ -170,6 +176,65 @@ class ChatScreen extends StatelessWidget {
                           ),
                         ),
                       );
+                    },
+
+                    // 👉 LONG PRESS: delete conversation
+                    onLongPress: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (dialogCtx) {
+                          return AlertDialog(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: const Text('Delete conversation?'),
+                            content: Text(
+                              'This will permanently delete your chat with $otherName for both of you.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogCtx).pop(false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(dialogCtx).pop(true),
+                                child: const Text(
+                                  'Delete',
+                                  style: TextStyle(color: Colors.redAccent),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+
+                      if (confirm == true) {
+                        try {
+                          await chatService.deleteChat(docs[index].id);
+
+                          // Optional feedback
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    'Conversation with $otherName deleted'),
+                              ),
+                            );
+                          }
+                          // StreamBuilder will auto-refresh and remove the row
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content:
+                                    Text('Failed to delete conversation'),
+                              ),
+                            );
+                          }
+                        }
+                      }
                     },
                   );
                 },
