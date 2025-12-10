@@ -1,8 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';                    // 👈 for BuildContext
+import 'package:uniwaste/services/activity_service.dart';
+import 'package:uniwaste/services/activity_share_helper.dart'; // 👈 new import
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final ActivityService _activityService = ActivityService();
 
   /// Build a deterministic chatId for a pair of users
   String _buildFriendChatId(String userAId, String userBId) {
@@ -53,7 +57,9 @@ class ChatService {
   }
 
   /// Creates (or reuses) a friend chat between donor & claimer
-  /// and sends the initial "Item Card" message inside that chat.
+  /// and sends an "Item Card" message inside that chat.
+  ///
+  /// [context] is used only for showing the "Share to Feed?" dialog.
   Future<String> createChatAndSendCard({
     required String listingId,
     required String donorId,
@@ -65,7 +71,6 @@ class ChatService {
     required bool isFree,
     required double price,
   }) async {
-    // 🔸 Use the SAME chatId rule as friend chats
     final String chatId = _buildFriendChatId(donorId, claimerId);
     final chatRef = _db.collection('chats').doc(chatId);
     final chatSnap = await chatRef.get();
@@ -77,19 +82,17 @@ class ChatService {
     };
 
     if (!chatSnap.exists) {
-      // First time these two users interact → create the chat doc
       await chatRef.set({
         'chatId': chatId,
         'participants': participants,
         'participantNames': participantNames,
-        'itemName': itemName,                     // last claimed item
-        'type': 'friend',                         // SAME type as friend chat
+        'itemName': itemName,
+        'type': 'friend',
         'lastMessage': 'Claimed: $itemName',
         'lastMessageTime': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       });
     } else {
-      // Chat already exists → just update metadata
       await chatRef.update({
         'participantNames': participantNames,
         'itemName': itemName,
@@ -98,20 +101,32 @@ class ChatService {
       });
     }
 
-    // 3. Send the "Item Card" as a message inside this chat
+    // Item card message
     await chatRef.collection('messages').add({
-      'senderId': claimerId,           // The claimer "sends" this card
-      'type': 'item_claim',            // Special type for rendering the card
+      'senderId': claimerId,
+      'type': 'item_claim',
       'text': 'I have claimed this item!',
-      'listingId': listingId,          // optional reference
       'cardData': {
         'title': itemName,
         'description': itemDescription,
         'isFree': isFree,
         'price': price,
+        'listingId': listingId,
       },
       'timestamp': FieldValue.serverTimestamp(),
     });
+
+    // Record donor + claimer activities + points
+    await _activityService.recordP2PTransaction(
+      listingId: listingId,
+      itemName: itemName,
+      donorId: donorId,
+      claimerId: claimerId,
+      donorName: donorName,
+      claimerName: claimerName,
+      donorPoints: isFree ? 100 : 50,
+      claimerPoints: isFree ? 50 : 50,
+    );
 
     return chatId;
   }

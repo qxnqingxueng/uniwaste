@@ -7,6 +7,8 @@ import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/create_listing_screen.dart'; 
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
+import 'package:uniwaste/services/activity_share_helper.dart';
+
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});
@@ -20,62 +22,80 @@ class _P2PStudentPageState extends State<P2PStudentPage> {
 
   // --- Logic to Claim an Item ---
   Future<void> _claimItem(
-    String docId, 
-    String currentUserId, 
-    String currentUserName,
-    String donorId, 
-    String donorName,
-    Map<String, dynamic> itemData, 
-  ) async {
-    try {
-      // 1. Update Firestore Status
-      await _db.collection('food_listings').doc(docId).update({
-        'status': 'reserved',
-        'claimed_by': currentUserId,
-        'claimed_at': FieldValue.serverTimestamp(),
-      });
+  String docId,
+  String currentUserId,
+  String currentUserName,
+  String donorId,
+  String donorName,
+  Map<String, dynamic> itemData,
+) async {
+  try {
+    // 1. Update Firestore Status
+    await _db.collection('food_listings').doc(docId).update({
+      'status': 'reserved',
+      'claimed_by': currentUserId,
+      'claimed_at': FieldValue.serverTimestamp(),
+    });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item claimed! Sending info to chat...')),
-        );
-        
-        // 2. Create Chat & Send Item Card
-        final chatService = ChatService();
-        final chatId = await chatService.createChatAndSendCard(
-          listingId: docId,
-          donorId: donorId,
-          claimerId: currentUserId,
-          donorName: donorName,
-          claimerName: currentUserName,
-          itemName: itemData['description'] ?? 'Food Item',
-          itemDescription: itemData['description'] ?? '',
-          isFree: itemData['is_free'] ?? true,
-          price: (itemData['price'] ?? 0).toDouble(),
-        );
+    final bool isFree = itemData['is_free'] ?? true;
+    final double price = (itemData['price'] ?? 0).toDouble();
+    final String itemName = itemData['description'] ?? 'Food item';
 
-        // 3. Navigate to Chat (FIXED: Added otherUserId)
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatDetailScreen(
-                chatId: chatId,
-                currentUserId: currentUserId,
-                otherUserId: donorId,    // <--- THIS WAS MISSING
-                otherUserName: donorName,
-                itemName: itemData['description'] ?? 'Food',
-              ),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+    // 2. Create Chat & send card (this also records activities + points)
+    final chatService = ChatService();
+    final chatId = await chatService.createChatAndSendCard(
+      listingId: docId,
+      donorId: donorId,
+      claimerId: currentUserId,
+      donorName: donorName,
+      claimerName: currentUserName,
+      itemName: itemName,
+      itemDescription: itemData['description'] ?? '',
+      isFree: isFree,
+      price: price,
+    );
+
+    // 🔥 Ask claimer **once** if they want to share to feed
+    await ActivityShareHelper.recordAndMaybeShare(
+      context: context,
+      userId: currentUserId,
+      title: 'You claimed $itemName',
+      description: 'You received food from $donorName.',
+      points: isFree ? 100 : 50,
+      type: isFree ? 'p2p_free' : 'p2p_paid',
+      extra: {
+        'listingId': docId,
+        'itemName': itemName,
+        'otherUserId': donorId,
+        'otherUserName': donorName,
+      },
+      createActivity: false, // ❗️DON'T create another activity – P2P already did
+    );
+
+    // 4. Navigate to chat
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatDetailScreen(
+            chatId: chatId,
+            currentUserId: currentUserId,
+            otherUserId: donorId,
+            otherUserName: donorName,
+            itemName: itemName,
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
