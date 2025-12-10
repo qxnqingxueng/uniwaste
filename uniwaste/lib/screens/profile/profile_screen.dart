@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:convert';      // for base64Encode / base64Decode
 import 'dart:typed_data';   // for Uint8List
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 // import 'package:firebase_storage/firebase_storage.dart';
@@ -11,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'voucher_screen.dart';
 import 'activity_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -323,10 +323,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         label: 'My Activity',
                         iconColor: const Color(0xFFD2DCB6),
                         onTap: () {
+                          final user = _auth.currentUser;
+                          if (user == null) {
+                            // optional: prevent crash if somehow not logged in
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please login to view your activity')),
+                            );
+                            return;
+                          }
+
+                          final String uid = user.uid;
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const ActivityScreen(),
+                              builder: (_) => ActivityScreen(userId: uid),
                             ),
                           );
                         },
