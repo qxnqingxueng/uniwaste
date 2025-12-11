@@ -68,18 +68,52 @@ class ActivityService {
 
   /// Internal helper: add (or create) points field on user document
   Future<void> _addPointsToUser(String userId, int deltaPoints) async {
-    try {
-      final userRef = _db.collection('users').doc(userId);
-      await _db.runTransaction((tx) async {
-        final snap = await tx.get(userRef);
-        final data = snap.data() as Map<String, dynamic>? ?? {};
-        final currentPoints = (data['points'] ?? 0) as int;
-        tx.update(userRef, {'points': currentPoints + deltaPoints});
-      });
-    } catch (e) {
-      debugPrint('❌ Error updating points for $userId: $e');
-    }
+  try {
+    final userRef = _db.collection('users').doc(userId);
+
+    await _db.runTransaction((tx) async {
+      final snap = await tx.get(userRef);
+      final data = snap.data() as Map<String, dynamic>? ?? {};
+
+      final oldPoints = (data['points'] ?? 0) as int;
+      final newPoints = oldPoints + deltaPoints;
+
+      tx.update(userRef, {'points': newPoints});
+
+      // 🔥 Check if user crossed 3000-point threshold
+      int oldMilestone = oldPoints ~/ 350;
+      int newMilestone = newPoints ~/ 350;
+
+      if (newMilestone > oldMilestone) {
+        // User reached a new 3000 milestone → award voucher
+        _grantVoucher(userId);
+      }
+    });
+
+  } catch (e) {
+    debugPrint('❌ Error updating points for $userId: $e');
   }
+}
+
+  Future<void> _grantVoucher(String userId) async {
+    final voucherRef = _db
+        .collection('users')
+        .doc(userId)
+        .collection('vouchers')
+        .doc();
+
+    await voucherRef.set({
+      'title': "RM3 Discount Voucher",
+      'brand': "UniWaste Rewards",
+      'value': 3,
+      'createdAt': FieldValue.serverTimestamp(),
+      'expiry': DateTime.now().add(const Duration(days: 60)), // 2 months
+      'isUsed': false,
+    });
+
+    debugPrint("🎉 Voucher granted to $userId");
+  }
+
 
   /// Public: record a completed P2P transaction for BOTH users
   Future<void> recordP2PTransaction({
