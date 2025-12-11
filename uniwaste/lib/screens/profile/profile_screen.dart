@@ -32,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _gender = '';
   String _email = '';
   String _address = '';
+  int _points = 0;
 
   // we store the avatar as bytes in memory
   Uint8List? _photoBytes;
@@ -68,10 +69,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _gender = (data['gender'] ?? '') as String;
         _address = (data['address'] ?? '') as String;
 
-        // new: read base64 avatar if exists
+        // read base64 avatar if exists
         final photoBase64 = data['photoBase64'] as String?;
         if (photoBase64 != null && photoBase64.isNotEmpty) {
           _photoBytes = base64Decode(photoBase64);
+        }
+
+        // read points (default 0 if missing / wrong type)
+        final pointsData = data['points'];
+        if (pointsData is int) {
+          _points = pointsData;
+        } else if (pointsData is num) {
+          _points = pointsData.toInt();
+        } else {
+          _points = 0;
         }
       } else {
         debugPrint('⚠️ User document does not exist, creating new one...');
@@ -81,6 +92,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'gender': '',
           'address': '',
           'photoBase64': '', // instead of photoUrl
+          'points': 0,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -426,10 +438,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ],
         ),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Your Impact',
               style: TextStyle(
                 color: Colors.white70,
@@ -437,17 +449,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
+            // 🔥 dynamic points here
             Text(
-              '45 meals rescued 🌱',
-              style: TextStyle(
+              '$_points points earned 🌱',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 4),
-            Text(
+            const SizedBox(height: 4),
+            const Text(
               '“Every meal saved is one less in the bin.”',
               style: TextStyle(
                 color: Colors.white,
