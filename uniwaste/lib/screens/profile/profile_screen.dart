@@ -1,16 +1,17 @@
 import 'dart:io';
-import 'dart:convert';      // for base64Encode / base64Decode
-import 'dart:typed_data';   // for Uint8List
+import 'dart:convert'; // for base64Encode / base64Decode
+import 'dart:typed_data'; // for Uint8List
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
-import 'voucher_screen.dart';
-import 'activity_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uniwaste/screens/profile/voucher_screen.dart';
+import 'package:uniwaste/screens/profile/activity_screen.dart';
+import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
+// ✅ Import the Dashboard
+import 'package:uniwaste/screens/merchant/merchant_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,8 +24,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Firebase
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // final FirebaseStorage _storage = FirebaseStorage.instance;
-
   final ImagePicker _picker = ImagePicker();
 
   // Profile fields
@@ -33,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _email = '';
   String _address = '';
   int _points = 0;
+  String _role = 'student'; // Default role
 
   // we store the avatar as bytes in memory
   Uint8List? _photoBytes;
@@ -49,16 +49,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadUserProfile() async {
     final user = _auth.currentUser;
     if (user == null) {
-      debugPrint('❌ No user logged in during profile load');
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       return;
     }
 
-    debugPrint('👤 Loading profile for UID: ${user.uid}');
-
     try {
       _email = user.email ?? '';
-      debugPrint('📧 Email: $_email');
 
       final docRef = _firestore.collection('users').doc(user.uid);
       final snap = await docRef.get();
@@ -68,14 +64,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _name = (data['name'] ?? '') as String;
         _gender = (data['gender'] ?? '') as String;
         _address = (data['address'] ?? '') as String;
+        _role = (data['role'] ?? 'student') as String;
 
         // read base64 avatar if exists
         final photoBase64 = data['photoBase64'] as String?;
         if (photoBase64 != null && photoBase64.isNotEmpty) {
-          _photoBytes = base64Decode(photoBase64);
+          try {
+            _photoBytes = base64Decode(photoBase64);
+          } catch (e) {
+            debugPrint("Error decoding image: $e");
+          }
         }
 
-        // read points (default 0 if missing / wrong type)
+        // read points
         final pointsData = data['points'];
         if (pointsData is int) {
           _points = pointsData;
@@ -85,14 +86,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _points = 0;
         }
       } else {
-        debugPrint('⚠️ User document does not exist, creating new one...');
+        // Create default doc if missing
         await docRef.set({
           'email': _email,
           'name': '',
           'gender': '',
           'address': '',
-          'photoBase64': '', // instead of photoUrl
+          'photoBase64': '',
           'points': 0,
+          'role': 'student',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
@@ -102,7 +104,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
-        debugPrint('✅ Profile loading completed');
       }
     }
   }
@@ -129,14 +130,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 70, // compress a bit so document not too big
+      imageQuality: 70,
+      maxWidth: 500, // Optimize size
     );
 
-    if (picked == null) return; // user cancel
+    if (picked == null) return;
 
     // confirm
-    final bool? confirmed =
-        await _showConfirmChangeDialog('profile picture');
+    final bool? confirmed = await _showConfirmChangeDialog('profile picture');
     if (confirmed != true) return;
 
     final file = File(picked.path);
@@ -158,9 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -169,10 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF1F3E0),
-              Color(0xFFFFFFFF),
-            ],
+            colors: [Color(0xFFF1F3E0), Color(0xFFFFFFFF)],
           ),
         ),
         child: SafeArea(
@@ -180,13 +176,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 const SizedBox(height: 20),
-
                 const Text(
                   'My Profile',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 30),
 
@@ -203,9 +195,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           width: 3,
                         ),
                       ),
-                      child: ClipOval(
-                        child: _buildProfileImage(),
-                      ),
+                      child: ClipOval(child: _buildProfileImage()),
                     ),
                     Positioned(
                       bottom: 0,
@@ -252,18 +242,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildProfileItem(
                         icon: Icons.person,
                         label: 'Name',
-                        value: _name.isEmpty
-                            ? 'Tap to add your name'
-                            : _name,
-                        onTap: () => _showEditDialog(
-                          title: 'Edit Name',
-                          fieldName: 'name',
-                          currentValue: _name,
-                          onConfirm: (value) {
-                            setState(() => _name = value);
-                            _updateField('name', value);
-                          },
-                        ),
+                        value: _name.isEmpty ? 'Tap to add your name' : _name,
+                        onTap:
+                            () => _showEditDialog(
+                              title: 'Edit Name',
+                              fieldName: 'name',
+                              currentValue: _name,
+                              onConfirm: (value) {
+                                setState(() => _name = value);
+                                _updateField('name', value);
+                              },
+                            ),
                       ),
                       _buildDivider(),
 
@@ -290,9 +279,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _buildProfileItem(
                         icon: Icons.location_on,
                         label: 'Address',
-                        value: _address.isEmpty
-                            ? 'Tap to select block'
-                            : _address,
+                        value:
+                            _address.isEmpty ? 'Tap to select block' : _address,
                         onTap: _showAddressDialog,
                       ),
                     ],
@@ -336,27 +324,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         iconColor: const Color(0xFFD2DCB6),
                         onTap: () {
                           final user = _auth.currentUser;
-                          if (user == null) {
-                            // optional: prevent crash if somehow not logged in
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please login to view your activity')),
+                          if (user != null) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => ActivityScreen(userId: user.uid),
+                              ),
                             );
-                            return;
                           }
-
-                          final String uid = user.uid;
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ActivityScreen(userId: uid),
-                            ),
-                          );
                         },
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // --- MERCHANT SECTION ---
+                _buildMerchantSection(),
+
                 const SizedBox(height: 20),
 
                 // LOGOUT BUTTON
@@ -412,11 +398,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fit: BoxFit.cover,
       );
     } else {
-      return Image.asset(
-        'assets/images/profile_pic.jpeg',
+      // Fallback or placeholder
+      return Container(
         width: 110,
         height: 110,
-        fit: BoxFit.cover,
+        color: Colors.grey[200],
+        child: const Icon(Icons.person, size: 60, color: Colors.grey),
       );
     }
   }
@@ -450,7 +437,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            // 🔥 dynamic points here
             Text(
               '$_points points earned 🌱',
               style: const TextStyle(
@@ -462,12 +448,101 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 4),
             const Text(
               '“Every meal saved is one less in the bin.”',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-              ),
+              style: TextStyle(color: Colors.white, fontSize: 12),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMerchantSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color:
+            _role == 'merchant' ? Colors.orange.shade50 : Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color:
+              _role == 'merchant'
+                  ? Colors.orange.shade200
+                  : Colors.blue.shade200,
+        ),
+      ),
+      child: InkWell(
+        onTap: () async {
+          if (_role == 'merchant') {
+            // ✅ NAVIGATE TO MERCHANT DASHBOARD
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MerchantDashboardScreen(),
+              ),
+            );
+          } else {
+            // Navigate to Registration
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MerchantRegistrationScreen(),
+              ),
+            );
+            // If they registered successfully, reload profile to update button
+            if (result == true) {
+              _loadUserProfile();
+            }
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(
+                _role == 'merchant' ? Icons.store : Icons.storefront_outlined,
+                color: _role == 'merchant' ? Colors.orange : Colors.blue,
+                size: 28,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _role == 'merchant'
+                          ? 'Merchant Dashboard'
+                          : 'Become a Merchant',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            _role == 'merchant'
+                                ? Colors.orange.shade900
+                                : Colors.blue.shade900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _role == 'merchant'
+                          ? 'Manage menu & orders'
+                          : 'For official campus vendors',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            _role == 'merchant'
+                                ? Colors.orange.shade700
+                                : Colors.blue.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: _role == 'merchant' ? Colors.orange : Colors.blue,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -492,11 +567,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: const Color(0xFFF1F3E0),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFFA1BC98),
-                size: 24,
-              ),
+              child: Icon(icon, color: const Color(0xFFA1BC98), size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -505,10 +576,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -521,11 +589,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
-            if (showChevron)
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey[400],
-              ),
+            if (showChevron) Icon(Icons.chevron_right, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -550,11 +614,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: iconColor.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 24,
-              ),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -566,10 +626,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.chevron_right, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -579,22 +636,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildDivider() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(
-        height: 1,
-        color: Colors.grey[200],
-      ),
+      child: Divider(height: 1, color: Colors.grey[200]),
     );
   }
 
-  // ------------ DIALOGS (EDIT / CONFIRM / GENDER / ADDRESS / LOGOUT) ------------
+  // ------------ DIALOGS ------------
 
   Future<bool?> _showConfirmChangeDialog(String fieldName) async {
     return showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Confirm Change'),
           content: Text('Are you sure you want to change your $fieldName?'),
           actions: [
@@ -624,22 +679,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Text(title),
           content: TextField(
             controller: controller,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(border: OutlineInputBorder()),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
             ),
             TextButton(
               onPressed: () async {
@@ -648,8 +699,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 Navigator.of(dialogContext).pop();
 
-                final confirmed =
-                    await _showConfirmChangeDialog(fieldName);
+                final confirmed = await _showConfirmChangeDialog(fieldName);
                 if (confirmed == true) {
                   onConfirm(value);
                 }
@@ -668,15 +718,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (dialogContext) {
         return SimpleDialog(
           title: const Text('Select Gender'),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           children: [
             for (final option in ['Male', 'Female', 'Rather not say'])
               SimpleDialogOption(
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
-                  final confirmed =
-                      await _showConfirmChangeDialog('gender');
+                  final confirmed = await _showConfirmChangeDialog('gender');
                   if (confirmed == true) {
                     setState(() => _gender = option);
                     _updateField('gender', option);
@@ -696,16 +746,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (dialogContext) {
         return SimpleDialog(
           title: const Text('Select Block'),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           children: [
-            for (final block
-                in ['Block A', 'Block B', 'Block C', 'Block D', 'Block E'])
+            for (final block in [
+              'Block A',
+              'Block B',
+              'Block C',
+              'Block D',
+              'Block E',
+            ])
               SimpleDialogOption(
                 onPressed: () async {
                   Navigator.of(dialogContext).pop();
-                  final confirmed =
-                      await _showConfirmChangeDialog('address');
+                  final confirmed = await _showConfirmChangeDialog('address');
                   if (confirmed == true) {
                     setState(() => _address = block);
                     _updateField('address', block);
@@ -725,24 +780,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (dialogContext) {
         return AlertDialog(
           insetPadding: const EdgeInsets.symmetric(horizontal: 40),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Logout'),
           content: const Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey[600]),
-              ),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                context
-                    .read<AuthenticationBloc>()
-                    .add(AuthenticationLogoutRequested());
+                context.read<AuthenticationBloc>().add(
+                  AuthenticationLogoutRequested(),
+                );
               },
               child: const Text(
                 'Logout',
