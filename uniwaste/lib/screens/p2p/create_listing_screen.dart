@@ -17,7 +17,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final _formKey = GlobalKey<FormState>();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  
+
   // Image Data
   // ignore: unused_field
   File? _imageFile;
@@ -44,7 +44,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   // --- Image Handling ---
   Future<void> _pickImage({bool isProof = false}) async {
     final XFile? pickedFile = await _picker.pickImage(
-      source: ImageSource.gallery, 
+      source: ImageSource.gallery,
       maxWidth: 600, // Optimize size for DB storage
       imageQuality: 70, // Compress to save space
     );
@@ -103,7 +103,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     }
     if (_foodType == 'packaged' && _expiryDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please set an expiry date for packaged goods.')),
+        const SnackBar(
+          content: Text('Please set an expiry date for packaged goods.'),
+        ),
       );
       return;
     }
@@ -125,7 +127,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         'expiry_date': _expiryDate,
         'created_at': FieldValue.serverTimestamp(),
         'status': 'available',
-        'image_blob': Blob(_imageBytes!), 
+        'image_blob': Blob(_imageBytes!),
       };
 
       // Add proof blob if packaged
@@ -143,9 +145,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -171,22 +173,30 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
-                    image: _imageBytes != null
-                        ? DecorationImage(
-                            image: MemoryImage(_imageBytes!), // Display bytes directly
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    image:
+                        _imageBytes != null
+                            ? DecorationImage(
+                              image: MemoryImage(
+                                _imageBytes!,
+                              ), // Display bytes directly
+                              fit: BoxFit.cover,
+                            )
+                            : null,
                   ),
-                  child: _imageBytes == null
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                            Text("Tap to upload food photo"),
-                          ],
-                        )
-                      : null,
+                  child:
+                      _imageBytes == null
+                          ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                              Text("Tap to upload food photo"),
+                            ],
+                          )
+                          : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -204,11 +214,17 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
               // 3. Food Type
               DropdownButtonFormField<String>(
-                value: _foodType,
-                decoration: const InputDecoration(labelText: "Food Type", border: OutlineInputBorder()),
+                initialValue: _foodType,
+                decoration: const InputDecoration(
+                  labelText: "Food Type",
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
                   DropdownMenuItem(value: 'cooked', child: Text("Cooked Meal")),
-                  DropdownMenuItem(value: 'packaged', child: Text("Packaged Goods")),
+                  DropdownMenuItem(
+                    value: 'packaged',
+                    child: Text("Packaged Goods"),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) _updateExpiryLogic(val);
@@ -226,7 +242,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                       children: [
                         Icon(Icons.info_outline, color: Colors.black54),
                         SizedBox(width: 8),
-                        Expanded(child: Text("Cooked meals expire automatically in 12 hours.")),
+                        Expanded(
+                          child: Text(
+                            "Cooked meals expire automatically in 12 hours.",
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -235,15 +255,19 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 // Manual Expiry Date Picker for Packaged
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: Text(_expiryDate == null 
-                    ? "Select Expiry Date" 
-                    : "Expires: ${_expiryDate.toString().split(' ')[0]}"
+                  title: Text(
+                    _expiryDate == null
+                        ? "Select Expiry Date"
+                        : "Expires: ${_expiryDate.toString().split(' ')[0]}",
                   ),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: _selectExpiryDate,
                 ),
                 // Expiry Proof Image
-                const Text("Upload Expiry Date Proof (on package):", style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  "Upload Expiry Date Proof (on package):",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () => _pickImage(isProof: true),
@@ -251,9 +275,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     height: 100,
                     width: double.infinity,
                     color: Colors.grey.shade200,
-                    child: _proofImageBytes != null 
-                      ? Image.memory(_proofImageBytes!, fit: BoxFit.cover)
-                      : const Center(child: Text("Tap to upload proof")),
+                    child:
+                        _proofImageBytes != null
+                            ? Image.memory(_proofImageBytes!, fit: BoxFit.cover)
+                            : const Center(child: Text("Tap to upload proof")),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -278,7 +303,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                     border: OutlineInputBorder(),
                     prefixText: "RM ",
                   ),
-                  validator: (val) => (!_isFree && (val == null || val.isEmpty)) ? 'Enter price' : null,
+                  validator:
+                      (val) =>
+                          (!_isFree && (val == null || val.isEmpty))
+                              ? 'Enter price'
+                              : null,
                 ),
               const SizedBox(height: 24),
 
@@ -290,9 +319,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: _isLoading 
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text("Post Listing"),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text("Post Listing"),
               ),
             ],
           ),

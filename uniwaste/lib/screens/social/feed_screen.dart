@@ -10,7 +10,8 @@ class FeedScreen extends StatefulWidget {
   State<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateMixin {
+class _FeedScreenState extends State<FeedScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -45,7 +46,7 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
             padding: const EdgeInsets.only(right: 20),
             child: IconButton(
               icon: const Icon(
-                Icons.group_add_outlined, 
+                Icons.group_add_outlined,
                 color: Color(0xFFA1BC98),
                 size: 35,
               ),
@@ -58,7 +59,7 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
                 );
               },
             ),
-          )
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -89,10 +90,7 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
               ),
-              tabs: const [
-                Tab(text: 'Feed'),
-                Tab(text: 'Chat'),
-              ],
+              tabs: const [Tab(text: 'Feed'), Tab(text: 'Chat')],
             ),
           ),
         ),
@@ -101,7 +99,7 @@ class _FeedScreenState extends State<FeedScreen> with SingleTickerProviderStateM
         controller: _tabController,
         children: [
           FeedTab(), // Separate Feed component
-          ChatScreen(), // Your existing Chat screen
+          const ChatScreen(), // Your existing Chat screen
         ],
       ),
     );

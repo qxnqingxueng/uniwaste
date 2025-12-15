@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert';      // for base64Decode
-import 'dart:typed_data';   // for Uint8List / MemoryImage
+import 'dart:convert'; // for base64Decode
+import 'dart:typed_data'; // for Uint8List / MemoryImage
 import 'friend_profile_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
@@ -62,45 +62,44 @@ class _FriendListScreenState extends State<FriendListScreen> {
 
       final data = meSnap.data() ?? {};
 
-      final incomingIds =
-          List<String>.from(data['incomingRequests'] ?? const []);
+      final incomingIds = List<String>.from(
+        data['incomingRequests'] ?? const [],
+      );
       final friendIds = List<String>.from(data['friends'] ?? const []);
 
       Future<List<_Friend>> fetchUsers(List<String> ids) async {
         if (ids.isEmpty) return [];
-        final futures = ids
-            .map((id) => _firestore.collection('users').doc(id).get())
-            .toList();
+        final futures =
+            ids
+                .map((id) => _firestore.collection('users').doc(id).get())
+                .toList();
         final snaps = await Future.wait(futures);
 
-        return snaps
-            .where((s) => s.exists)
-            .map((s) {
-              final d = s.data() as Map<String, dynamic>;
-              final email = (d['email'] ?? '') as String;
-              final name =
-                  (d['name'] ?? (email.isNotEmpty ? email : 'Unknown')) as String;
+        return snaps.where((s) => s.exists).map((s) {
+          final d = s.data() as Map<String, dynamic>;
+          final email = (d['email'] ?? '') as String;
+          final name =
+              (d['name'] ?? (email.isNotEmpty ? email : 'Unknown')) as String;
 
-              String? avatarBase64 = d['photoBase64'] as String?;
-              MemoryImage? avatarImage;
-              if (avatarBase64 != null && avatarBase64.isNotEmpty) {
-                try {
-                  final bytes = base64Decode(avatarBase64);
-                  avatarImage = MemoryImage(bytes);  // 👈 create provider once
-                } catch (e) {
-                  debugPrint('Error decoding avatar for ${s.id}: $e');
-                }
-              }
+          String? avatarBase64 = d['photoBase64'] as String?;
+          MemoryImage? avatarImage;
+          if (avatarBase64 != null && avatarBase64.isNotEmpty) {
+            try {
+              final bytes = base64Decode(avatarBase64);
+              avatarImage = MemoryImage(bytes); // 👈 create provider once
+            } catch (e) {
+              debugPrint('Error decoding avatar for ${s.id}: $e');
+            }
+          }
 
-              return _Friend(
-                uid: s.id,
-                name: name,
-                email: email,
-                avatarBase64: avatarBase64,
-                avatarImage: avatarImage,           // 👈 pass in
-              );
-            })
-            .toList();
+          return _Friend(
+            uid: s.id,
+            name: name,
+            email: email,
+            avatarBase64: avatarBase64,
+            avatarImage: avatarImage, // 👈 pass in
+          );
+        }).toList();
       }
 
       final requests = await fetchUsers(incomingIds);
@@ -113,7 +112,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
       setState(() {
         _friendRequests = requests;
         _friends = friends;
-         _isLoading = false; 
+        _isLoading = false;
       });
     } catch (e) {
       debugPrint('Error loading friends: $e');
@@ -123,7 +122,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;   // 🔥 hide loader when done
+          _isLoading = false; // 🔥 hide loader when done
         });
       }
     }
@@ -283,7 +282,6 @@ class _FriendListScreenState extends State<FriendListScreen> {
         return SafeArea(
           child: Wrap(
             children: [
-
               // Chat with friend
               ListTile(
                 leading: const Icon(Icons.chat_bubble_outline),
@@ -296,7 +294,8 @@ class _FriendListScreenState extends State<FriendListScreen> {
                   final currentUser = authState.user!;
 
                   final String currentUserId = currentUser.userId;
-                  final String currentUserName = currentUser.name; // or displayName, adjust field
+                  final String currentUserName =
+                      currentUser.name; // or displayName, adjust field
                   final String otherUserId = friend.uid;
 
                   final chatId = await _chatService.getOrCreateChat(
@@ -311,13 +310,15 @@ class _FriendListScreenState extends State<FriendListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => ChatDetailScreen(
-                        chatId: chatId,
-                        currentUserId: currentUserId,
-                        otherUserId: otherUserId,
-                        otherUserName: friend.name,
-                        itemName: 'Friend chat', // or data from Firestore if you want
-                      ),
+                      builder:
+                          (_) => ChatDetailScreen(
+                            chatId: chatId,
+                            currentUserId: currentUserId,
+                            otherUserId: otherUserId,
+                            otherUserName: friend.name,
+                            itemName:
+                                'Friend chat', // or data from Firestore if you want
+                          ),
                     ),
                   );
                 },
@@ -332,11 +333,12 @@ class _FriendListScreenState extends State<FriendListScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => FriendProfileScreen(
-                        name: friend.name,
-                        email: friend.email,
-                        avatarBase64: friend.avatarBase64,
-                      ),
+                      builder:
+                          (_) => FriendProfileScreen(
+                            name: friend.name,
+                            email: friend.email,
+                            avatarBase64: friend.avatarBase64,
+                          ),
                     ),
                   );
                 },
@@ -362,13 +364,11 @@ class _FriendListScreenState extends State<FriendListScreen> {
                         ),
                         actions: [
                           TextButton(
-                            onPressed: () =>
-                                Navigator.of(dialogCtx).pop(false),
+                            onPressed: () => Navigator.of(dialogCtx).pop(false),
                             child: const Text('Cancel'),
                           ),
                           TextButton(
-                            onPressed: () =>
-                                Navigator.of(dialogCtx).pop(true),
+                            onPressed: () => Navigator.of(dialogCtx).pop(true),
                             child: const Text(
                               'Remove',
                               style: TextStyle(color: Colors.redAccent),
@@ -390,7 +390,6 @@ class _FriendListScreenState extends State<FriendListScreen> {
       },
     );
   }
-
 
   // ---------------------------------------------------------------------------
   // ADD FRIEND DIALOG
@@ -430,11 +429,12 @@ class _FriendListScreenState extends State<FriendListScreen> {
               });
 
               try {
-                final q = await _firestore
-                    .collection('users')
-                    .where('email', isEqualTo: email)
-                    .limit(1)
-                    .get();
+                final q =
+                    await _firestore
+                        .collection('users')
+                        .where('email', isEqualTo: email)
+                        .limit(1)
+                        .get();
 
                 if (q.docs.isEmpty) {
                   setStateDialog(() {
@@ -449,7 +449,8 @@ class _FriendListScreenState extends State<FriendListScreen> {
                     });
                   } else {
                     final d = doc.data();
-                    final name = (d['name'] ?? d['email'] ?? 'Unknown') as String;
+                    final name =
+                        (d['name'] ?? d['email'] ?? 'Unknown') as String;
                     final String? avatarBase64 = d['photoBase64'] as String?;
                     MemoryImage? avatarImage;
                     if (avatarBase64 != null && avatarBase64.isNotEmpty) {
@@ -466,16 +467,16 @@ class _FriendListScreenState extends State<FriendListScreen> {
                       name: name,
                       email: (d['email'] ?? '') as String,
                       avatarBase64: avatarBase64,
-                      avatarImage: avatarImage,   // 👈 pass it here
+                      avatarImage: avatarImage, // 👈 pass it here
                     );
 
-                    final alreadyFriend =
-                        _friends.any((x) => x.uid == friend.uid);
-                    final alreadyRequested = _friendRequests
-                            .any((x) => x.uid == friend.uid) ||
+                    final alreadyFriend = _friends.any(
+                      (x) => x.uid == friend.uid,
+                    );
+                    final alreadyRequested =
+                        _friendRequests.any((x) => x.uid == friend.uid) ||
                         (d['incomingRequests'] is List &&
-                            (d['incomingRequests'] as List)
-                                .contains(me?.uid));
+                            (d['incomingRequests'] as List).contains(me?.uid));
 
                     if (alreadyFriend) {
                       errorText = 'You are already friends.';
@@ -573,19 +574,19 @@ class _FriendListScreenState extends State<FriendListScreen> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                          child: searching
-                              ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor:
-                                        AlwaysStoppedAnimation<Color>(
-                                      Colors.black87,
+                          child:
+                              searching
+                                  ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.black87,
+                                      ),
                                     ),
-                                  ),
-                                )
-                              : const Text('Search'),
+                                  )
+                                  : const Text('Search'),
                         ),
                       ],
                     ),
@@ -652,7 +653,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
     final hasAnything = hasRequests || hasFriends;
 
     return Scaffold(
-      backgroundColor: _bgTop,          // 🔥 same colour as body
+      backgroundColor: _bgTop, // 🔥 same colour as body
       appBar: AppBar(
         backgroundColor: _bgTop,
         elevation: 0,
@@ -668,53 +669,55 @@ class _FriendListScreenState extends State<FriendListScreen> {
         ),
       ),
       body: Container(
-        color: _bgTop,                  // solid background, no gradient
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildAddFriendsButton(),
-                    const SizedBox(height: 24),
-
-                    if (!hasAnything) _buildEmptyState(),
-
-                    if (hasRequests) ...[
-                      const Text(
-                        'Requests',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Column(
-                        children: _friendRequests
-                            .map((f) => _buildRequestCard(f))
-                            .toList(),
-                      ),
+        color: _bgTop, // solid background, no gradient
+        child:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAddFriendsButton(),
                       const SizedBox(height: 24),
-                    ],
 
-                    if (hasFriends) ...[
-                      const Text(
-                        'Your friends',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                      if (!hasAnything) _buildEmptyState(),
+
+                      if (hasRequests) ...[
+                        const Text(
+                          'Requests',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Column(
-                        children:
-                            _friends.map((f) => _buildFriendRow(f)).toList(),
-                      ),
+                        const SizedBox(height: 8),
+                        Column(
+                          children:
+                              _friendRequests
+                                  .map((f) => _buildRequestCard(f))
+                                  .toList(),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      if (hasFriends) ...[
+                        const Text(
+                          'Your friends',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Column(
+                          children:
+                              _friends.map((f) => _buildFriendRow(f)).toList(),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
       ),
     );
   }
@@ -737,9 +740,9 @@ class _FriendListScreenState extends State<FriendListScreen> {
             ),
           ],
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.group_add_outlined, size: 20, color: _accent),
             SizedBox(width: 6),
             Text(
@@ -757,19 +760,16 @@ class _FriendListScreenState extends State<FriendListScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.only(top: 40, bottom: 12),
+        padding: EdgeInsets.only(top: 40, bottom: 12),
         child: Column(
-          children: const [
+          children: [
             Icon(Icons.people_outline, size: 64, color: Colors.grey),
             SizedBox(height: 12),
             Text(
               "No friends yet",
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 4),
             Text(
@@ -818,10 +818,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
                     const SizedBox(height: 2),
                     Text(
                       friend.email,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
@@ -891,10 +888,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
           ),
           const SizedBox(width: 8),
           Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 12,
-              horizontal: 16,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Row(
               children: [
                 _buildAvatar(friend, radius: 27),
@@ -965,7 +959,9 @@ class _FriendListScreenState extends State<FriendListScreen> {
 
     // 3. Final fallback: initial letter
     final String initial =
-        friend.name.trim().isNotEmpty ? friend.name.trim()[0].toUpperCase() : '?';
+        friend.name.trim().isNotEmpty
+            ? friend.name.trim()[0].toUpperCase()
+            : '?';
 
     return CircleAvatar(
       radius: radius,
@@ -983,9 +979,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
 
   void _showSnack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 }
 
@@ -1001,6 +995,6 @@ class _Friend {
     required this.name,
     required this.email,
     this.avatarBase64,
-    this.avatarImage,   
+    this.avatarImage,
   });
 }

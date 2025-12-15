@@ -16,7 +16,8 @@ class ActivityShareHelper {
       final data = snap.data() as Map<String, dynamic>;
 
       // 🔧 adjust these keys if your user doc uses different field names
-      return (data['name'] ?? data['displayName'] ?? data['username']) as String?;
+      return (data['name'] ?? data['displayName'] ?? data['username'])
+          as String?;
     } catch (_) {
       return null;
     }
@@ -31,10 +32,10 @@ class ActivityShareHelper {
     required String title,
     required String description,
     required int points,
-    required String type,                  // e.g. 'p2p_free', 'bin', 'merchant'
-    Map<String, dynamic>? extra,           // any extra info
+    required String type, // e.g. 'p2p_free', 'bin', 'merchant'
+    Map<String, dynamic>? extra, // any extra info
     bool createActivity = true,
-    String? userDisplayName,               // optional: you can still pass it
+    String? userDisplayName, // optional: you can still pass it
   }) async {
     String? activityId;
 
@@ -86,7 +87,7 @@ class ActivityShareHelper {
         userDisplayName ?? await _fetchUserName(userId) ?? 'You';
 
     // Turn "You claimed a" -> "Jun claimed a"
-    String _toFeedText(String raw) {
+    String toFeedText(String raw) {
       if (raw.startsWith('You ')) {
         return raw.replaceFirst('You ', '$resolvedName ');
       }
@@ -96,15 +97,15 @@ class ActivityShareHelper {
       return raw;
     }
 
-    final feedTitle = _toFeedText(title);
-    final feedDescription = _toFeedText(description);
+    final feedTitle = toFeedText(title);
+    final feedDescription = toFeedText(description);
 
     // 4. Create feed post doc
     await _db.collection('feed_posts').add({
       'userId': userId,
-      'userName': resolvedName,   // 👈 now ALWAYS filled
+      'userName': resolvedName, // 👈 now ALWAYS filled
       'activityId': activityId,
-      'title': feedTitle,         // 👈 "Jun claimed a"
+      'title': feedTitle, // 👈 "Jun claimed a"
       'description': feedDescription, // 👈 "Jun received food from Daidi."
       'rawTitle': title,
       'rawDescription': description,
@@ -117,11 +118,9 @@ class ActivityShareHelper {
     });
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Shared to Feed ✅')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Shared to Feed ✅')));
     }
   }
 }
-
-
