@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
-import 'package:uniwaste/services/payment_service.dart';
 
 class PaymentService {
   Map<String, dynamic>? paymentIntent;
@@ -11,15 +10,20 @@ class PaymentService {
   // 1. Main function to handle the entire payment flow
   Future<bool> makePayment(double amount, String currency) async {
     try {
-      // A. Create Payment Intent (Ask Stripe to create a transaction)
+      // A. Create Payment Intent
       paymentIntent = await createPaymentIntent(amount, currency);
 
-      // B. Initialize the Payment Sheet (Prepare the UI)
+      // B. Initialize the Payment Sheet
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: paymentIntent!['client_secret'],
           style: ThemeMode.light,
           merchantDisplayName: 'UniWaste',
+
+          // ✅ REQUIRED for GrabPay/Alipay (App Switching)
+          returnURL: 'flutterstripe://redirect',
+
+          // ✅ Enable Apple Pay / Google Pay if configured
           googlePay: const PaymentSheetGooglePay(
             merchantCountryCode: 'MY',
             testEnv: true,
@@ -27,9 +31,9 @@ class PaymentService {
         ),
       );
 
-      // C. Show the Payment Sheet (Pop up the card entry screen)
+      // C. Show the Payment Sheet
       await displayPaymentSheet();
-      return true; // Success!
+      return true; // Success
     } catch (e) {
       print("Payment Failed: $e");
       return false; // Failed
@@ -50,13 +54,14 @@ class PaymentService {
   // 3. Helper to talk to Stripe API
   createPaymentIntent(double amount, String currency) async {
     try {
-      // Stripe expects amount in "cents" (e.g., $10.00 = 1000)
+      // Stripe expects amount in "cents" (e.g., RM 10.00 = 1000)
       int amountInCents = (amount * 100).toInt();
 
       Map<String, dynamic> body = {
         'amount': amountInCents.toString(),
         'currency': currency,
-        'payment_method_types[]': 'card',
+        // ✅ NEW: Enable Automatic Payment Methods (Includes Card, GrabPay, Alipay)
+        'automatic_payment_methods[enabled]': 'true',
       };
 
       var response = await http.post(

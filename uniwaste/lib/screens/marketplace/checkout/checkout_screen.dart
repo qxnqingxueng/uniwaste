@@ -3,12 +3,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
+import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart'; // ✅ Needed to clear cart
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
+import 'package:uniwaste/screens/marketplace/checkout/edit_address_screen.dart';
 import 'package:uniwaste/screens/marketplace/checkout/models/delivery_info.dart';
-import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.dart'; // ✅ Navigate here after success
-import 'package:uniwaste/services/payment_service.dart'; // ✅ Your Stripe Service
+import 'package:uniwaste/screens/marketplace/checkout/models/order_model.dart';
+import 'package:uniwaste/screens/marketplace/checkout/repositories/order_repository.dart';
+import 'package:uniwaste/screens/marketplace/checkout/services/payment_services.dart';
+import 'package:uniwaste/screens/marketplace/checkout/widgets/voucher_page.dart';
+import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -18,107 +22,54 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  // Toggle between Delivery and Pick Up
-  bool isDelivery = true;
-  bool _isProcessing = false; // ✅ To show loading on button
+  DeliveryInfo _deliveryInfo = DeliveryInfo();
+  final PaymentService _paymentService = PaymentService();
+  final OrderRepository _orderRepository = OrderRepository();
+  bool _isProcessing = false;
 
-  // Hardcoded address for demo (Connect to Profile in real app)
-  final DeliveryInfo _deliveryInfo = DeliveryInfo(
-    name: "Ng Xue Qing | (+60) 10-459 9806",
-    address: "4, Tingkat Kerapu 4, Taman Kerapu, 13400 Butterworth...",
-  );
-
-  // ---------------------------------------------------------------------------
-  // 1. BACKEND LOGIC: Create Order in Firestore
-  // ---------------------------------------------------------------------------
-  Future<void> _createOrder(
-    List<CartItemModel> items,
-    double totalAmount,
-  ) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      // Generate a new Document Reference
-      final orderRef = FirebaseFirestore.instance.collection('orders').doc();
-
-      final orderData = {
-        'orderId': orderRef.id,
-        'userId': user.uid,
-        'userName': user.displayName ?? 'Student',
-        'totalAmount': totalAmount,
-        'status': 'paid', // Initial status
-        'orderDate': FieldValue.serverTimestamp(),
-        'method': isDelivery ? 'Delivery' : 'Pick Up',
-        'address': isDelivery ? _deliveryInfo.address : 'Self Pick-Up',
-        'items':
-            items
-                .map(
-                  (item) => {
-                    'title': item.title,
-                    'price': item.price,
-                    'quantity': item.quantity,
-                    // 'merchantId': item.merchantId // Add this if you have it in CartItemModel
-                  },
-                )
-                .toList(),
-      };
-
-      // Write to Firestore
-      await orderRef.set(orderData);
-
-      // Clear the Cart
-      if (mounted) {
-        context.read<CartBloc>().add(ClearCart());
-      }
-
-      // Navigate to Tracking Screen
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OrderStatusScreen(orderId: orderRef.id),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Order Creation Failed: $e")));
-      }
-    } finally {
-      if (mounted) setState(() => _isProcessing = false);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // 2. PAYMENT LOGIC: Handle Stripe
-  // ---------------------------------------------------------------------------
-  Future<void> _handlePayment(
-    List<CartItemModel> items,
-    double totalAmount,
-  ) async {
-    print("--------------------------------------------------");
-    print("BUTTON WAS CLICKED! STARTING PAYMENT...");
-    print("--------------------------------------------------");
-
+  Future<void> _handlePayment(List<CartItemModel> items, double amount) async {
     setState(() => _isProcessing = true);
 
-    // ... rest of your code
-
-    // Call your Payment Service
-    // Note: totalAmount passed to Stripe needs to be precise
-    final success = await PaymentService.instance.makePayment(
-      context,
-      totalAmount,
-    );
+    // 1. Stripe Payment
+    final success = await _paymentService.makePayment(amount, "MYR");
 
     if (success) {
-      await _createOrder(items, totalAmount);
+      // 2. Create Order
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+
+        final order = OrderModel(
+          orderId: orderId,
+          userId: user.uid,
+          totalAmount: amount,
+          status: 'paid',
+          orderDate: DateTime.now(),
+          items: items,
+          shippingAddress: "${_deliveryInfo.name}, ${_deliveryInfo.address}",
+        );
+
+        await _orderRepository.createOrder(order);
+
+        if (mounted) {
+          // Clear Cart
+          context.read<CartBloc>().add(ClearCart());
+          // Navigate to Success/Tracking
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderStatusScreen(orderId: orderId),
+            ),
+          );
+        }
+      }
     } else {
-      if (mounted) setState(() => _isProcessing = false);
+      if (mounted)
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Payment Failed")));
     }
+    if (mounted) setState(() => _isProcessing = false);
   }
 
   @override
@@ -132,306 +83,120 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       body: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
-          if (state is! CartLoaded) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          if (state is! CartLoaded || state.items.isEmpty)
+            return const Center(child: Text("No items"));
 
-          // Filter only selected items
           final checkoutItems = state.items.where((i) => i.isSelected).toList();
-
-          // Calculate totals
-          final double subtotal = checkoutItems.fold(
-            0,
-            (sum, item) => sum + (item.price * item.quantity),
+          final subtotal = checkoutItems.fold(
+            0.0,
+            (sum, i) => sum + (i.price * i.quantity),
           );
-          final double deliveryFee = isDelivery ? 3.00 : 0.00;
-          final double totalPayment = subtotal + deliveryFee;
+          final deliveryFee = 3.00;
+          final total = subtotal + deliveryFee;
 
-          if (checkoutItems.isEmpty) {
-            return const Center(child: Text("No items selected for checkout"));
-          }
-
-          return Column(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 1. DELIVERY / PICKUP TOGGLE
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildOptionButton(
-                              "Delivery",
-                              isActive: isDelivery,
-                              onTap: () => setState(() => isDelivery = true),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildOptionButton(
-                              "Pick Up",
-                              isActive: !isDelivery,
-                              onTap: () => setState(() => isDelivery = false),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 2. ADDRESS SECTION (Only if Delivery)
-                      if (isDelivery) ...[
-                        const Text(
-                          "Delivery Address",
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+          return Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Address
+                ListTile(
+                  title: Text(
+                    _deliveryInfo.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(_deliveryInfo.address),
+                  trailing: TextButton(
+                    child: const Text("Edit"),
+                    onPressed: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (_) =>
+                                  EditAddressScreen(currentInfo: _deliveryInfo),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.red),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _deliveryInfo.name,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _deliveryInfo.address,
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right, color: Colors.grey),
-                          ],
-                        ),
-                        const Divider(height: 32),
-                      ],
-
-                      // 3. ORDER DETAILS
-                      const Text(
-                        "Order Details",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ...checkoutItems.map((item) => _buildOrderItem(item)),
-                      const Divider(height: 32),
-
-                      // 4. COST BREAKDOWN
-                      _buildCostRow(
-                        "Subtotal",
-                        "RM ${subtotal.toStringAsFixed(2)}",
-                      ),
-                      const SizedBox(height: 8),
-                      _buildCostRow(
-                        "Delivery Fee",
-                        "RM ${deliveryFee.toStringAsFixed(2)}",
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 5. VOUCHER SECTION
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade200),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.local_offer, color: Colors.orange),
-                            const SizedBox(width: 12),
-                            const Text(
-                              "Platform Voucher",
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                            const Spacer(),
-                            Text(
-                              "Select Voucher",
-                              style: TextStyle(color: Colors.grey[400]),
-                            ),
-                            const Icon(Icons.chevron_right, color: Colors.grey),
-                          ],
-                        ),
-                      ),
-                    ],
+                      );
+                      if (result != null)
+                        setState(() => _deliveryInfo = result);
+                    },
                   ),
                 ),
-              ),
-
-              // BOTTOM PAYMENT BAR
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, -5),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          "Total Payment",
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        Text(
-                          "RM ${totalPayment.toStringAsFixed(2)}",
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFA1BC98), // App Theme Green
+                const Divider(),
+                // Items
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: checkoutItems.length,
+                    itemBuilder:
+                        (_, i) => ListTile(
+                          title: Text(checkoutItems[i].name),
+                          trailing: Text(
+                            "RM ${(checkoutItems[i].price * checkoutItems[i].quantity).toStringAsFixed(2)}",
                           ),
                         ),
-                      ],
-                    ),
-                    const Spacer(),
-                    ElevatedButton(
-                      // ✅ 3. LOGIC INTEGRATION
-                      onPressed:
-                          _isProcessing
-                              ? null
-                              : () =>
-                                  _handlePayment(checkoutItems, totalPayment),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFA1BC98),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                  ),
+                ),
+                // Voucher
+                ListTile(
+                  leading: const Icon(
+                    Icons.confirmation_number,
+                    color: Colors.orange,
+                  ),
+                  title: const Text("Apply Voucher"),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const VoucherPage()),
                       ),
-                      child:
-                          _isProcessing
-                              ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                              : const Text(
-                                "Place Order",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
+                ),
+                const Divider(),
+                // Total
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Total Payment",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      "RM ${total.toStringAsFixed(2)}",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.green,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                // Pay Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed:
+                        _isProcessing
+                            ? null
+                            : () => _handlePayment(checkoutItems, total),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1B5E20),
+                    ),
+                    child:
+                        _isProcessing
+                            ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                            : const Text(
+                              "Place Order",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                  ),
+                ),
+              ],
+            ),
           );
         },
       ),
-    );
-  }
-
-  // --- WIDGET HELPERS ---
-
-  Widget _buildOptionButton(
-    String text, {
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFE8F5E9) : Colors.white,
-          border: Border.all(
-            color: isActive ? const Color(0xFFA1BC98) : Colors.grey.shade300,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          text,
-          style: TextStyle(
-            color: isActive ? const Color(0xFFA1BC98) : Colors.grey,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrderItem(CartItemModel item) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  "x${item.quantity}",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                if (item.notes.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Text(
-                      "Note: ${item.notes}",
-                      style: TextStyle(
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey[500],
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          Text(
-            "RM ${(item.price * item.quantity).toStringAsFixed(2)}",
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCostRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.black)),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ],
     );
   }
 }

@@ -11,7 +11,7 @@ import 'package:uniwaste/screens/profile/voucher_screen.dart';
 import 'package:uniwaste/screens/profile/activity_screen.dart';
 import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
 // ✅ Import the Dashboard
-import 'package:uniwaste/screens/merchant/merchant_dashboard_screen.dart';
+import 'package:uniwaste/screens/merchant/dashboard/merchant_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

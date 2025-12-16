@@ -15,7 +15,7 @@ class MerchantMenuScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text("Manage Menu")),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.orange,
+        backgroundColor: Colors.green,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text("Add Food", style: TextStyle(color: Colors.white)),
         onPressed: () => _showAddEditDialog(context, merchantId: merchantId),
@@ -32,24 +32,7 @@ class MerchantMenuScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.restaurant_menu,
-                    size: 80,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Menu is empty.\nAdd items to start selling!",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            );
+            return const Center(child: Text("No items yet. Click Add Food!"));
           }
 
           final items = snapshot.data!.docs;
@@ -61,7 +44,7 @@ class MerchantMenuScreen extends StatelessWidget {
               final data = items[index].data() as Map<String, dynamic>;
               final itemId = items[index].id;
 
-              // Safe Image Decoding
+              // Helper to decode image
               Widget imageWidget;
               try {
                 if (data['imagePath'] != null &&
@@ -82,44 +65,20 @@ class MerchantMenuScreen extends StatelessWidget {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.all(10),
+                  contentPadding: const EdgeInsets.all(8),
                   leading: Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    width: 60,
+                    height: 60,
+                    color: Colors.grey[200],
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: imageWidget,
                     ),
                   ),
-                  title: Text(
-                    data['name'] ?? 'Unknown',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 4),
-                      Text(
-                        "RM ${(data['price'] ?? 0).toStringAsFixed(2)}",
-                        style: const TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        "Qty: ${data['quantity']}",
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
+                  title: Text(data['name'] ?? 'Unknown'),
+                  subtitle: Text(
+                    "RM ${(data['price'] ?? 0).toStringAsFixed(2)} | Qty: ${data['quantity']}",
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -169,39 +128,16 @@ class MerchantMenuScreen extends StatelessWidget {
   }
 
   void _deleteItem(BuildContext context, String merchantId, String itemId) {
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("Delete Item?"),
-            content: const Text("This cannot be undone."),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("Cancel"),
-              ),
-              TextButton(
-                child: const Text(
-                  "Delete",
-                  style: TextStyle(color: Colors.red),
-                ),
-                onPressed: () {
-                  FirebaseFirestore.instance
-                      .collection('merchants')
-                      .doc(merchantId)
-                      .collection('items')
-                      .doc(itemId)
-                      .delete();
-                  Navigator.pop(ctx);
-                },
-              ),
-            ],
-          ),
-    );
+    FirebaseFirestore.instance
+        .collection('merchants')
+        .doc(merchantId)
+        .collection('items')
+        .doc(itemId)
+        .delete();
   }
 }
 
-// ✅ Separate Widget for Dialog to handle State
+// Separate Widget to handle Dialog State
 class _FoodDialog extends StatefulWidget {
   final String merchantId;
   final String? docId;
@@ -235,7 +171,7 @@ class _FoodDialogState extends State<_FoodDialog> {
   }
 
   Future<void> _pickImage() async {
-    // ✅ STRICTLY GALLERY
+    // FORCE GALLERY
     final XFile? image = await _picker.pickImage(
       source: ImageSource.gallery,
       imageQuality: 40,
@@ -252,18 +188,13 @@ class _FoodDialogState extends State<_FoodDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.docId == null ? "Add New Food" : "Edit Food"),
+      title: Text(widget.docId == null ? "Add Food" : "Edit Food"),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // IMAGE PICKER
-            const Text(
-              "Food Photo (Required)",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            const SizedBox(height: 8),
             GestureDetector(
               onTap: _pickImage,
               child: Container(
@@ -273,8 +204,7 @@ class _FoodDialogState extends State<_FoodDialog> {
                   color: Colors.grey[100],
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _showImageError ? Colors.red : Colors.grey[400]!,
-                    width: _showImageError ? 2 : 1,
+                    color: _showImageError ? Colors.red : Colors.grey,
                   ),
                 ),
                 child:
@@ -286,67 +216,34 @@ class _FoodDialogState extends State<_FoodDialog> {
                             fit: BoxFit.cover,
                           ),
                         )
-                        : Column(
+                        : const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              Icons.add_photo_alternate,
-                              size: 40,
-                              color: _showImageError ? Colors.red : Colors.grey,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              "Tap to pick from Album",
-                              style: TextStyle(
-                                color:
-                                    _showImageError
-                                        ? Colors.red
-                                        : Colors.grey[600],
-                                fontSize: 12,
-                              ),
-                            ),
+                            Icon(Icons.add_photo_alternate),
+                            Text("Add Photo (Required)"),
                           ],
                         ),
               ),
             ),
             if (_showImageError)
-              const Padding(
-                padding: EdgeInsets.only(top: 4, left: 4),
-                child: Text(
-                  "Image is required!",
-                  style: TextStyle(color: Colors.red, fontSize: 11),
-                ),
+              const Text(
+                "Image is required!",
+                style: TextStyle(color: Colors.red, fontSize: 12),
               ),
 
-            const SizedBox(height: 20),
-
-            // FIELDS
+            const SizedBox(height: 16),
             TextField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: "Food Name",
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+              decoration: const InputDecoration(labelText: "Food Name"),
             ),
-            const SizedBox(height: 12),
             TextField(
               controller: _priceCtrl,
-              decoration: const InputDecoration(
-                labelText: "Price (RM)",
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+              decoration: const InputDecoration(labelText: "Price (RM)"),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
-            const SizedBox(height: 12),
             TextField(
               controller: _qtyCtrl,
-              decoration: const InputDecoration(
-                labelText: "Quantity Available",
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
+              decoration: const InputDecoration(labelText: "Quantity"),
               keyboardType: TextInputType.number,
             ),
           ],
@@ -363,7 +260,7 @@ class _FoodDialogState extends State<_FoodDialog> {
             final price = double.tryParse(_priceCtrl.text) ?? 0.0;
             final qty = int.tryParse(_qtyCtrl.text) ?? 0;
 
-            // ✅ VALIDATION: Image is MUST
+            // ✅ VALIDATION
             if (name.isEmpty ||
                 price <= 0 ||
                 qty <= 0 ||
@@ -371,11 +268,6 @@ class _FoodDialogState extends State<_FoodDialog> {
               setState(() {
                 if (_base64Image == null) _showImageError = true;
               });
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Please fill all fields and choose a photo!"),
-                ),
-              );
               return;
             }
 
@@ -403,7 +295,7 @@ class _FoodDialogState extends State<_FoodDialog> {
             }
             if (context.mounted) Navigator.pop(context);
           },
-          child: const Text("Save Item"),
+          child: const Text("Save"),
         ),
       ],
     );

@@ -1,256 +1,478 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
-import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
-import 'package:uniwaste/screens/marketplace/merchant_details/widgets/item_details_bottom_sheet.dart';
 
-class MerchantPage extends StatelessWidget {
-  final String merchantId; // ✅ NEW: Need ID to fetch menu
+// ✅ IMPORTS FOR CART
+import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
+import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
+import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
+import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
+
+// ✅ NAVIGATION IMPORTS
+import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
+// ✅ IMPORT THE SOCIAL CHAT SCREEN
+import 'package:uniwaste/screens/social/chat_detail_screen.dart';
+
+class MerchantPage extends StatefulWidget {
+  final String merchantId;
   final String merchantName;
-  final String imageUrl;
+  final String? imageUrl;
 
   const MerchantPage({
     super.key,
     required this.merchantId,
     required this.merchantName,
-    required this.imageUrl,
+    this.imageUrl,
   });
 
-  // Helper to safely load network or asset images
-  Widget _buildSafeImage(String path, {BoxFit fit = BoxFit.cover}) {
-    if (path.startsWith('http')) {
-      return Image.network(
-        path,
-        fit: fit,
-        errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
-      );
-    } else if (path.length > 200) {
-      // It's likely a base64 string
-      try {
-        return Image.memory(base64Decode(path), fit: fit);
-      } catch (e) {
-        return Container(color: Colors.grey[200]);
+  @override
+  State<MerchantPage> createState() => _MerchantPageState();
+}
+
+class _MerchantPageState extends State<MerchantPage> {
+  bool _isChatLoading = false; // To show spinner on Chat button
+
+  // ✅ LOGIC: Add Item to Global Cart (Bloc)
+  void _addToCart(String itemId, String name, double price, String? imagePath) {
+    final cartItem = CartItemModel(
+      id: itemId,
+      name: name,
+      price: price,
+      quantity: 1,
+      imagePath: imagePath,
+      merchantId: widget.merchantId,
+      merchantName: widget.merchantName,
+      isSelected: true,
+    );
+
+    context.read<CartBloc>().add(AddItem(cartItem));
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Added $name to cart"),
+        duration: const Duration(milliseconds: 600),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.green[700],
+        margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+      ),
+    );
+  }
+
+  // ✅ NEW LOGIC: Find or Create Chat, then Navigate
+  Future<void> _handleMerchantChat() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Please login to chat")));
+      return;
+    }
+
+    setState(() => _isChatLoading = true);
+
+    try {
+      final chatsRef = FirebaseFirestore.instance.collection('chats');
+
+      // 1. Check if chat exists (query by participants)
+      // Note: Firestore array-contains only handles one value efficiently.
+      // We query for current user, then filter manually for merchant.
+      final querySnapshot =
+          await chatsRef.where('participants', arrayContains: user.uid).get();
+
+      String? existingChatId;
+
+      for (var doc in querySnapshot.docs) {
+        final List participants = doc['participants'];
+        if (participants.contains(widget.merchantId)) {
+          existingChatId = doc.id;
+          break;
+        }
       }
-    } else {
-      return Image.asset(
-        path,
-        fit: fit,
-        errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
+
+      String chatIdToUse = existingChatId ?? '';
+
+      // 2. If no chat exists, create one
+      if (existingChatId == null) {
+        final newChatDoc = await chatsRef.add({
+          'participants': [user.uid, widget.merchantId],
+          'participantNames': {
+            user.uid: user.displayName ?? 'Student',
+            widget.merchantId: widget.merchantName,
+          },
+          'lastMessage': 'Chat started',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+        chatIdToUse = newChatDoc.id;
+      }
+
+      if (!mounted) return;
+
+      // 3. Navigate to existing Social Module Chat Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (_) => ChatDetailScreen(
+                chatId: chatIdToUse,
+                currentUserId: user.uid,
+                otherUserId: widget.merchantId,
+                otherUserName: widget.merchantName,
+                itemName: "General Inquiry", // Default context
+              ),
+        ),
       );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error opening chat: $e")));
+    } finally {
+      if (mounted) setState(() => _isChatLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (widget.merchantId.isEmpty) {
+      return const Scaffold(
+        body: Center(child: Text("Error: Invalid Merchant ID")),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          // 1. App Bar
-          SliverAppBar(
-            backgroundColor: const Color(0xFFF1F3E0),
-            expandedHeight: 200.0,
-            pinned: true,
-            leading: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.7),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.arrow_back_ios,
-                  size: 18,
-                  color: Colors.black,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 200,
+                pinned: true,
+                backgroundColor: Colors.orange,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Text(
+                    widget.merchantName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 5)],
+                    ),
+                  ),
+                  background:
+                      widget.imageUrl != null && widget.imageUrl!.isNotEmpty
+                          ? _buildSafeImage(widget.imageUrl!)
+                          : Container(
+                            color: Colors.orange[300],
+                            child: const Icon(
+                              Icons.store,
+                              size: 80,
+                              color: Colors.white,
+                            ),
+                          ),
                 ),
-                padding: const EdgeInsets.only(left: 6),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              centerTitle: true,
-              title: Text(
-                merchantName,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                leading: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
                 ),
               ),
-              background: Hero(
-                tag: merchantId,
-                child: _buildSafeImage(imageUrl),
-              ),
-            ),
-          ),
 
-          // 2. Info Header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
+              // Info & Chat Button
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.star, color: Colors.orange, size: 20),
-                      Text(
-                        " 4.8 (120+ ratings) • Asian • Halal",
-                        style: TextStyle(fontWeight: FontWeight.w500),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Surplus Food Menu",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            "Save food, save money!",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // ✅ UPDATED CHAT BUTTON
+                      OutlinedButton.icon(
+                        onPressed: _isChatLoading ? null : _handleMerchantChat,
+                        icon:
+                            _isChatLoading
+                                ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(
+                                  Icons.chat_bubble_outline,
+                                  size: 18,
+                                ),
+                        label: const Text("Chat"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue[700],
+                          side: BorderSide(color: Colors.blue[200]!),
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "Surplus Menu (50% OFF)",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // 3. 🔥 REAL MENU FROM FIREBASE
-          StreamBuilder<QuerySnapshot>(
-            stream:
-                FirebaseFirestore.instance
-                    .collection('merchants')
-                    .doc(merchantId)
-                    .collection('menu')
-                    .where(
-                      'isAvailable',
-                      isEqualTo: true,
-                    ) // Only show active items
-                    .snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SliverToBoxAdapter(
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
+              // Food List
+              StreamBuilder<QuerySnapshot>(
+                stream:
+                    FirebaseFirestore.instance
+                        .collection('merchants')
+                        .doc(widget.merchantId)
+                        .collection('items')
+                        .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData)
+                    return const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                    );
 
-              final docs = snapshot.data?.docs ?? [];
-              if (docs.isEmpty) {
-                return const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Center(child: Text("No items available right now.")),
-                  ),
-                );
-              }
+                  final items = snapshot.data!.docs;
+                  if (items.isEmpty)
+                    return const SliverToBoxAdapter(
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40),
+                          child: Text("No items available today."),
+                        ),
+                      ),
+                    );
 
-              return SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
-                  final itemId = docs[index].id;
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final data = items[index].data() as Map<String, dynamic>;
+                      final itemId = items[index].id;
+                      final qty = data['quantity'] ?? 0;
+                      if (qty <= 0) return const SizedBox.shrink();
 
-                  final String itemName = data['title'] ?? 'Unknown';
-                  final double price = (data['price'] ?? 0).toDouble();
-                  final int surplus = data['surplus'] ?? 0;
-                  final String itemImg =
-                      data['image'] ?? imageUrl; // Fallback to merchant image
-
-                  return Column(
-                    children: [
-                      ListTile(
-                        leading: SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: _buildSafeImage(itemImg),
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(10),
+                          leading: SizedBox(
+                            width: 70,
+                            height: 70,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: _buildSafeImage(data['imagePath']),
+                            ),
                           ),
-                        ),
-                        title: Text(itemName),
-                        subtitle: Text(
-                          "Qty: $surplus • RM ${price.toStringAsFixed(2)}",
-                        ),
-                        trailing: const Icon(
-                          Icons.add_circle,
-                          color: Colors.green,
-                        ),
-                        onTap: () {
-                          // Add to Cart Logic
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(20),
+                          title: Text(
+                            data['name'] ?? 'Food',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "RM ${(data['price'] ?? 0).toStringAsFixed(2)}",
+                              ),
+                              Text(
+                                "$qty left",
+                                style: TextStyle(
+                                  color: Colors.red[400],
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: InkWell(
+                            onTap:
+                                () => _addToCart(
+                                  itemId,
+                                  data['name'],
+                                  (data['price'] ?? 0).toDouble(),
+                                  data['imagePath'],
+                                ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                "ADD",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                            builder:
-                                (context) => ItemDetailsBottomSheet(
-                                  itemId: itemId,
-                                  itemName: itemName,
-                                  price: price,
-                                  merchantName: merchantName,
-                                  itemImage:
-                                      itemImg, // Pass base64 string or url
-                                ),
-                          );
-                        },
-                      ),
-                      const Divider(),
-                    ],
+                          ),
+                        ),
+                      );
+                    }, childCount: items.length),
                   );
-                }, childCount: docs.length),
+                },
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ],
+          ),
+
+          // STICKY CART BAR
+          BlocBuilder<CartBloc, CartState>(
+            builder: (context, state) {
+              int totalCount = 0;
+              double totalPrice = 0.0;
+              if (state is CartLoaded) {
+                totalCount = state.items.fold(
+                  0,
+                  (sum, item) => sum + item.quantity,
+                );
+                totalPrice = state.items.fold(
+                  0,
+                  (sum, item) => sum + (item.price * item.quantity),
+                );
+              }
+              if (totalCount == 0) return const SizedBox.shrink();
+
+              return Positioned(
+                bottom: 20,
+                left: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CartScreen(),
+                        ),
+                      ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green[700],
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.4),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              "$totalCount items",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              "RM ${totalPrice.toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Row(
+                          children: [
+                            Text(
+                              "View Cart",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               );
             },
           ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
-
-      // 4. Floating Cart Button
-      bottomSheet: BlocBuilder<CartBloc, CartState>(
-        builder: (context, state) {
-          if (state is! CartLoaded || state.items.isEmpty) {
-            return const SizedBox.shrink();
-          }
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16.0),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1B5E20),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
-                );
-              },
-              child: Text(
-                "View Cart (${state.items.length} items) - RM ${state.totalAmount.toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
     );
+  }
+
+  Widget _buildSafeImage(String? data) {
+    if (data == null || data.isEmpty)
+      return Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.fastfood, color: Colors.grey),
+      );
+    try {
+      if (data.startsWith('http'))
+        return Image.network(
+          data,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Icon(Icons.error),
+        );
+      return Image.memory(
+        base64Decode(data),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Icon(Icons.error),
+      );
+    } catch (e) {
+      return Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.broken_image),
+      );
+    }
   }
 }

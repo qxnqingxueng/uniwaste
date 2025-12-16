@@ -1,14 +1,14 @@
-import 'package:equatable/equatable.dart';
 import '../entities/merchant_entity.dart';
 
-class Merchant extends Equatable {
+class Merchant {
   final String id;
   final String name;
   final String description;
   final String imageUrl;
   final double rating;
   final bool isOpen;
-  final String location;
+  // ✅ 1. Add categories field
+  final List<String> categories;
 
   const Merchant({
     required this.id,
@@ -17,10 +17,21 @@ class Merchant extends Equatable {
     required this.imageUrl,
     required this.rating,
     required this.isOpen,
-    required this.location,
+    this.categories = const [], // ✅ Default to empty
   });
 
-  // Convert from Entity (Database) to Model (App)
+  // ✅ 2. Update Empty Constructor
+  static const empty = Merchant(
+    id: '',
+    name: '',
+    description: '',
+    imageUrl: '',
+    rating: 0,
+    isOpen: false,
+    categories: [],
+  );
+
+  // ✅ 3. Update fromEntity
   static Merchant fromEntity(MerchantEntity entity) {
     return Merchant(
       id: entity.id,
@@ -29,11 +40,11 @@ class Merchant extends Equatable {
       imageUrl: entity.imageUrl,
       rating: entity.rating,
       isOpen: entity.isOpen,
-      location: entity.location,
+      categories: entity.categories, // Map logic
     );
   }
 
-  // Convert from Model to Entity
+  // ✅ 4. Update toEntity
   MerchantEntity toEntity() {
     return MerchantEntity(
       id: id,
@@ -42,11 +53,7 @@ class Merchant extends Equatable {
       imageUrl: imageUrl,
       rating: rating,
       isOpen: isOpen,
-      location: location,
+      categories: categories,
     );
   }
-
-  @override
-  List<Object?> get props =>
-      [id, name, description, imageUrl, rating, isOpen, location];
 }

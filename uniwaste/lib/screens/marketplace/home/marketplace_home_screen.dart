@@ -129,15 +129,30 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 );
               }
               if (state is MerchantLoaded) {
-                // Filter Logic
+                // ✅ UPDATED FILTER LOGIC
                 final merchants =
                     state.merchants.where((m) {
+                      // 1. Search Bar Filter
                       final matchesSearch = m.name.toLowerCase().contains(
                         _searchController.text.toLowerCase(),
                       );
-                      // Add category logic here if you save categories in DB
-                      return matchesSearch;
+
+                      // 2. Category Chip Filter
+                      bool matchesCategory = true;
+                      if (_selectedCategory != "All") {
+                        // Check if the merchant's list contains the selected button text
+                        matchesCategory = m.categories.contains(
+                          _selectedCategory,
+                        );
+                      }
+
+                      // 3. Safety Filter (ID must exist)
+                      final isValid = m.id.isNotEmpty;
+
+                      return matchesSearch && matchesCategory && isValid;
                     }).toList();
+
+                // ... rest of your code ...
 
                 if (merchants.isEmpty) {
                   return const SliverToBoxAdapter(
@@ -191,13 +206,40 @@ class _FancyMerchantCard extends StatelessWidget {
   const _FancyMerchantCard({required this.merchant, required this.onTap});
 
   Widget _buildImage(String data) {
+    // 1. ✅ SAFETY CHECK: If data is empty, show a grey placeholder
+    if (data.isEmpty) {
+      return Container(
+        color: Colors.grey[200],
+        child: const Icon(Icons.store, size: 50, color: Colors.grey),
+      );
+    }
+
+    // 2. Check if it is a URL (http)
     if (data.startsWith('http')) {
-      return Image.network(data, fit: BoxFit.cover);
-    } else {
+      return Image.network(
+        data,
+        fit: BoxFit.cover,
+        errorBuilder:
+            (_, __, ___) =>
+                Container(color: Colors.grey[200]), // Safety for bad URLs
+      );
+    }
+    // 3. Assume it is Base64 (from phone storage)
+    else {
       try {
-        return Image.memory(base64Decode(data), fit: BoxFit.cover);
+        return Image.memory(
+          base64Decode(data),
+          fit: BoxFit.cover,
+          errorBuilder:
+              (_, __, ___) =>
+                  Container(color: Colors.grey[200]), // Safety for bad bytes
+        );
       } catch (e) {
-        return Container(color: Colors.grey);
+        // If decoding fails, show placeholder instead of crashing
+        return Container(
+          color: Colors.grey[200],
+          child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+        );
       }
     }
   }
@@ -234,7 +276,9 @@ class _FancyMerchantCard extends StatelessWidget {
                   child: SizedBox(
                     height: 160,
                     width: double.infinity,
-                    child: _buildImage(merchant.imageUrl),
+                    child: _buildImage(
+                      merchant.imageUrl,
+                    ), // ✅ Uses the safe builder
                   ),
                 ),
               ),
@@ -252,9 +296,12 @@ class _FancyMerchantCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      merchant.description,
+                      merchant.description.isNotEmpty
+                          ? merchant.description
+                          : "No description available",
                       style: TextStyle(color: Colors.grey[500], fontSize: 12),
                       maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
                     Row(
