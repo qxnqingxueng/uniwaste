@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 //import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
+import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
 //import 'package:google_fonts/google_fonts.dart';
 import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
@@ -99,12 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const DashboardPage(),
 
           // Cart / Waste
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-              child: Text("My Cart Page\n(Add your widgets here)"),
-            ),
-          ),
+          const CartScreen(),
 
           // Message
           const FeedScreen(),
