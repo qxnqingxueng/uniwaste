@@ -130,11 +130,5 @@ class ActivityShareHelper {
       'likesCount': 0,
       'likedBy': <String>[],
     });
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Shared to Feed ✅')));
-    }
   }
 }
