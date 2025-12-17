@@ -3,17 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:uniwaste/screens/merchant/analytics/sales_report_screen.dart';
 import 'package:uniwaste/screens/merchant/dashboard/merchant_orders_screen.dart';
 import 'package:uniwaste/screens/merchant/menu/merchant_menu_screen.dart';
-import 'package:uniwaste/screens/merchant/settings/merchant_settings_screen.dart'; // ✅ Import Settings
+import 'package:uniwaste/screens/merchant/settings/merchant_settings_screen.dart';
 
 class MerchantDashboardScreen extends StatelessWidget {
   const MerchantDashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // 1. GET THE REAL MERCHANT ID FROM FIREBASE
     final user = FirebaseAuth.instance.currentUser;
 
-    // 🚨 SAFETY CHECK: If user is not logged in, stop here to prevent red screen crash
     if (user == null) {
       return Scaffold(
         appBar: AppBar(title: const Text("Dashboard")),
@@ -50,17 +48,16 @@ class MerchantDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Header
             Text(
               "Welcome back,\n$merchantName",
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
 
-            // --- 1. INCOMING ORDERS ---
+            // 1. INCOMING ORDERS (All logic is here now)
             _DashboardCard(
               title: "Incoming Orders",
-              subtitle: "View and manage active orders",
+              subtitle: "Manage Delivery & Pickups",
               icon: Icons.receipt_long,
               color: Colors.blue,
               onTap: () {
@@ -77,7 +74,7 @@ class MerchantDashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // --- 2. MANAGE MENU ---
+            // 2. MANAGE MENU
             _DashboardCard(
               title: "Manage Menu",
               subtitle: "Add or edit surplus food items",
@@ -93,10 +90,10 @@ class MerchantDashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // --- 3. SALES REPORT ---
+            // 3. SALES REPORT
             _DashboardCard(
               title: "Sales Report",
-              subtitle: "Track your earnings and impact",
+              subtitle: "Track earnings",
               icon: Icons.analytics_outlined,
               color: Colors.purple,
               onTap: () {
@@ -112,7 +109,7 @@ class MerchantDashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // --- 4. SHOP SETTINGS (NEW!) ---
+            // 4. SHOP SETTINGS
             _DashboardCard(
               title: "Shop Settings",
               subtitle: "Update name, address & photo",
@@ -127,7 +124,6 @@ class MerchantDashboardScreen extends StatelessWidget {
                 );
               },
             ),
-
             const SizedBox(height: 40),
           ],
         ),
@@ -136,7 +132,7 @@ class MerchantDashboardScreen extends StatelessWidget {
   }
 }
 
-// A Pretty Card Widget for the Dashboard
+// Reusable Card Widget
 class _DashboardCard extends StatelessWidget {
   final String title;
   final String subtitle;
@@ -171,7 +167,6 @@ class _DashboardCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon Circle
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -181,8 +176,6 @@ class _DashboardCard extends StatelessWidget {
               child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(width: 16),
-
-            // Text Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,8 +195,6 @@ class _DashboardCard extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Arrow
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),

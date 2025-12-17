@@ -4,8 +4,10 @@ import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
-// ✅ CONNECTED: Checkout Screen
 import 'package:uniwaste/screens/marketplace/checkout/checkout_screen.dart';
+
+// ✅ 1. IMPORT THE SHOP HOME SCREEN
+import 'package:uniwaste/screens/marketplace/home/marketplace_home_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -77,8 +79,18 @@ class CartScreen extends StatelessWidget {
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
+
+          // ✅ 2. FIXED BUTTON NAVIGATION
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              // Navigate to the Shop Page instead of closing the app
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MarketplaceHomeScreen(),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1B5E20),
             ),
@@ -101,7 +113,6 @@ class CartScreen extends StatelessWidget {
           onChanged:
               (val) => context.read<CartBloc>().add(ToggleSelection(item.id)),
         ),
-        // Image Placeholder (or you can use your safe image builder here too)
         Container(
           width: 70,
           height: 70,

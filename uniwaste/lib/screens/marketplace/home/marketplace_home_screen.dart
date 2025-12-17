@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/merchant_bloc/merchant_bloc.dart';
 import 'package:uniwaste/screens/marketplace/merchant_details/merchant_page.dart';
 import 'package:merchant_repository/merchant_repository.dart';
+import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.dart';
 
 class MarketplaceHomeScreen extends StatefulWidget {
   const MarketplaceHomeScreen({super.key});
@@ -26,9 +29,87 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    context.read<MerchantBloc>().add(LoadMerchants());
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
+
+      // ✅ TRACKER BUTTON (Lifted up to avoid Bottom Menu)
+      floatingActionButton:
+          user == null
+              ? null
+              : Padding(
+                // 👇 100px Padding ensures it floats ABOVE your bottom menu
+                padding: const EdgeInsets.only(bottom: 100.0),
+                child: StreamBuilder<QuerySnapshot>(
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('orders')
+                          .where('userId', isEqualTo: user.uid)
+                          .orderBy('orderDate', descending: true)
+                          .snapshots(),
+                  builder: (context, snapshot) {
+                    // 1. Safety Checks
+                    if (snapshot.hasError ||
+                        !snapshot.hasData ||
+                        snapshot.data!.docs.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // 2. Find active order (Filter out completed/cancelled)
+                    DocumentSnapshot? activeOrder;
+                    try {
+                      activeOrder = snapshot.data!.docs.firstWhere((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final status = data['status'] ?? 'completed';
+                        return status != 'completed' && status != 'cancelled';
+                      });
+                    } catch (e) {
+                      activeOrder = null;
+                    }
+
+                    // 3. Hide if no active order
+                    if (activeOrder == null) return const SizedBox.shrink();
+
+                    // 4. Show Button
+                    return FloatingActionButton.extended(
+                      heroTag: "tracker_btn",
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (_) =>
+                                    OrderStatusScreen(orderId: activeOrder!.id),
+                          ),
+                        );
+                      },
+                      backgroundColor: const Color(0xFF1B5E20),
+                      elevation: 10,
+                      icon: const Icon(
+                        Icons.delivery_dining,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        "Track Order",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+      // ✅ MAIN BODY (Your original UI)
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -64,7 +145,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 ),
               ],
             ),
-            // Search Bar
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(60),
               child: Container(
@@ -72,6 +152,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 color: Colors.white,
                 child: TextField(
                   controller: _searchController,
+                  onChanged: (v) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Search for food...',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
@@ -115,53 +196,44 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
             ),
           ),
 
-          // 3. 🔥 REAL MERCHANT LIST (Using Bloc)
+          // 3. Merchant List
           BlocBuilder<MerchantBloc, MerchantState>(
             builder: (context, state) {
-              if (state is MerchantLoading) {
+              if (state is MerchantLoading)
                 return const SliverToBoxAdapter(
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
                 );
-              }
-              if (state is MerchantError) {
+              if (state is MerchantError)
                 return SliverToBoxAdapter(
                   child: Center(child: Text("Error: ${state.message}")),
                 );
-              }
+
               if (state is MerchantLoaded) {
-                // ✅ UPDATED FILTER LOGIC
                 final merchants =
                     state.merchants.where((m) {
-                      // 1. Search Bar Filter
                       final matchesSearch = m.name.toLowerCase().contains(
                         _searchController.text.toLowerCase(),
                       );
-
-                      // 2. Category Chip Filter
-                      bool matchesCategory = true;
-                      if (_selectedCategory != "All") {
-                        // Check if the merchant's list contains the selected button text
-                        matchesCategory = m.categories.contains(
-                          _selectedCategory,
-                        );
-                      }
-
-                      // 3. Safety Filter (ID must exist)
-                      final isValid = m.id.isNotEmpty;
-
-                      return matchesSearch && matchesCategory && isValid;
+                      bool matchesCategory =
+                          _selectedCategory == "All" ||
+                          m.categories.contains(_selectedCategory);
+                      return matchesSearch &&
+                          matchesCategory &&
+                          m.id.isNotEmpty;
                     }).toList();
 
-                // ... rest of your code ...
-
-                if (merchants.isEmpty) {
+                if (merchants.isEmpty)
                   return const SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.all(30),
                       child: Center(child: Text("No merchants found")),
                     ),
                   );
-                }
 
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -171,7 +243,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                       return _FancyMerchantCard(
                         merchant: merchant,
                         onTap: () {
-                          // ✅ Pass Real ID to MerchantPage
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -192,7 +263,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
               return const SliverToBoxAdapter(child: SizedBox.shrink());
             },
           ),
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
       ),
     );
@@ -206,36 +277,25 @@ class _FancyMerchantCard extends StatelessWidget {
   const _FancyMerchantCard({required this.merchant, required this.onTap});
 
   Widget _buildImage(String data) {
-    // 1. ✅ SAFETY CHECK: If data is empty, show a grey placeholder
-    if (data.isEmpty) {
+    if (data.isEmpty)
       return Container(
         color: Colors.grey[200],
         child: const Icon(Icons.store, size: 50, color: Colors.grey),
       );
-    }
-
-    // 2. Check if it is a URL (http)
     if (data.startsWith('http')) {
       return Image.network(
         data,
         fit: BoxFit.cover,
-        errorBuilder:
-            (_, __, ___) =>
-                Container(color: Colors.grey[200]), // Safety for bad URLs
+        errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
       );
-    }
-    // 3. Assume it is Base64 (from phone storage)
-    else {
+    } else {
       try {
         return Image.memory(
           base64Decode(data),
           fit: BoxFit.cover,
-          errorBuilder:
-              (_, __, ___) =>
-                  Container(color: Colors.grey[200]), // Safety for bad bytes
+          errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
         );
       } catch (e) {
-        // If decoding fails, show placeholder instead of crashing
         return Container(
           color: Colors.grey[200],
           child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
@@ -276,9 +336,7 @@ class _FancyMerchantCard extends StatelessWidget {
                   child: SizedBox(
                     height: 160,
                     width: double.infinity,
-                    child: _buildImage(
-                      merchant.imageUrl,
-                    ), // ✅ Uses the safe builder
+                    child: _buildImage(merchant.imageUrl),
                   ),
                 ),
               ),

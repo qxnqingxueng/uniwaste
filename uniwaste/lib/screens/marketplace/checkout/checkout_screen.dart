@@ -26,6 +26,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final PaymentService _paymentService = PaymentService();
   final OrderRepository _orderRepository = OrderRepository();
   bool _isProcessing = false;
+  bool isDelivery = true;
 
   Future<void> _handlePayment(List<CartItemModel> items, double amount) async {
     setState(() => _isProcessing = true);
@@ -34,27 +35,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final success = await _paymentService.makePayment(amount, "MYR");
 
     if (success) {
-      // 2. Create Order
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final orderId = DateTime.now().millisecondsSinceEpoch.toString();
 
+        // ✅ GET MERCHANT ID SAFELY (From the first item in the cart)
+        final String merchantId =
+            items.isNotEmpty ? (items.first.merchantId ?? '') : '';
+
+        if (merchantId.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error: Item has no Merchant ID")),
+          );
+          setState(() => _isProcessing = false);
+          return;
+        }
+
         final order = OrderModel(
           orderId: orderId,
           userId: user.uid,
+          userName: user.displayName ?? "Student",
           totalAmount: amount,
           status: 'paid',
           orderDate: DateTime.now(),
           items: items,
-          shippingAddress: "${_deliveryInfo.name}, ${_deliveryInfo.address}",
+          shippingAddress:
+              isDelivery
+                  ? "${_deliveryInfo.name}, ${_deliveryInfo.address}"
+                  : "Self Pick-Up",
+          method: isDelivery ? 'Delivery' : 'Pick Up',
+
+          // ✅ PASS IT HERE
+          merchantId: merchantId,
         );
 
         await _orderRepository.createOrder(order);
 
         if (mounted) {
-          // Clear Cart
           context.read<CartBloc>().add(ClearCart());
-          // Navigate to Success/Tracking
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
@@ -75,6 +93,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text("Checkout", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
@@ -91,84 +110,147 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             0.0,
             (sum, i) => sum + (i.price * i.quantity),
           );
-          final deliveryFee = 3.00;
+          final deliveryFee = isDelivery ? 3.00 : 0.00;
           final total = subtotal + deliveryFee;
 
-          return Padding(
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Address
-                ListTile(
-                  title: Text(
-                    _deliveryInfo.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(_deliveryInfo.address),
-                  trailing: TextButton(
-                    child: const Text("Edit"),
-                    onPressed: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) =>
-                                  EditAddressScreen(currentInfo: _deliveryInfo),
-                        ),
-                      );
-                      if (result != null)
-                        setState(() => _deliveryInfo = result);
-                    },
-                  ),
-                ),
-                const Divider(),
-                // Items
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: checkoutItems.length,
-                    itemBuilder:
-                        (_, i) => ListTile(
-                          title: Text(checkoutItems[i].name),
-                          trailing: Text(
-                            "RM ${(checkoutItems[i].price * checkoutItems[i].quantity).toStringAsFixed(2)}",
-                          ),
-                        ),
-                  ),
-                ),
-                // Voucher
-                ListTile(
-                  leading: const Icon(
-                    Icons.confirmation_number,
-                    color: Colors.orange,
-                  ),
-                  title: const Text("Apply Voucher"),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap:
-                      () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const VoucherPage()),
-                      ),
-                ),
-                const Divider(),
-                // Total
+                // Toggles
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      "Total Payment",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                    Expanded(
+                      child: _buildOptionButton(
+                        "Delivery",
+                        isActive: isDelivery,
+                        onTap: () => setState(() => isDelivery = true),
+                      ),
                     ),
-                    Text(
-                      "RM ${total.toStringAsFixed(2)}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.green,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildOptionButton(
+                        "Pick Up",
+                        isActive: !isDelivery,
+                        onTap: () => setState(() => isDelivery = false),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
+
+                // Dynamic Address Section
+                if (isDelivery) ...[
+                  const Text(
+                    "Delivery Address",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.location_on, color: Colors.red),
+                      title: Text(
+                        _deliveryInfo.name,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(_deliveryInfo.address),
+                      trailing: TextButton(
+                        child: const Text("Edit"),
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => EditAddressScreen(
+                                    currentInfo: _deliveryInfo,
+                                  ),
+                            ),
+                          );
+                          if (result != null)
+                            setState(() => _deliveryInfo = result);
+                        },
+                      ),
+                    ),
+                  ),
+                ] else ...[
+                  const Text(
+                    "Pick Up Location",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.store, color: Colors.orange, size: 30),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            "Collect at Merchant Counter when 'Ready'",
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // Item Details
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      ...checkoutItems.map(
+                        (item) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text("${item.quantity}x  ${item.name}"),
+                              Text(
+                                "RM ${(item.price * item.quantity).toStringAsFixed(2)}",
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const Divider(),
+                      _buildCostRow(
+                        "Subtotal",
+                        "RM ${subtotal.toStringAsFixed(2)}",
+                      ),
+                      _buildCostRow(
+                        "Delivery Fee",
+                        isDelivery ? "RM 3.00" : "Free",
+                      ),
+                      const Divider(),
+                      _buildCostRow(
+                        "Total Payment",
+                        "RM ${total.toStringAsFixed(2)}",
+                        isBold: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+
                 // Pay Button
                 SizedBox(
                   width: double.infinity,
@@ -186,9 +268,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ? const CircularProgressIndicator(
                               color: Colors.white,
                             )
-                            : const Text(
-                              "Place Order",
-                              style: TextStyle(color: Colors.white),
+                            : Text(
+                              "Place Order - RM ${total.toStringAsFixed(2)}",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                   ),
                 ),
@@ -197,6 +282,55 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildOptionButton(
+    String text, {
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFE8F5E9) : Colors.white,
+          border: Border.all(
+            color: isActive ? const Color(0xFF1B5E20) : Colors.grey.shade300,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: TextStyle(
+            color: isActive ? const Color(0xFF1B5E20) : Colors.grey,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCostRow(String label, String value, {bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: isBold ? Colors.green : Colors.black,
+          ),
+        ),
+      ],
     );
   }
 }
