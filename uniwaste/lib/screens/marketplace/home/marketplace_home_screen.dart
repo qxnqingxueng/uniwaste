@@ -41,12 +41,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
 
-      // ✅ TRACKER BUTTON (Lifted up to avoid Bottom Menu)
+      // ✅ TRACKER BUTTON (Kept exactly as it was)
       floatingActionButton:
           user == null
               ? null
               : Padding(
-                // 👇 100px Padding ensures it floats ABOVE your bottom menu
                 padding: const EdgeInsets.only(bottom: 100.0),
                 child: StreamBuilder<QuerySnapshot>(
                   stream:
@@ -56,14 +55,12 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                           .orderBy('orderDate', descending: true)
                           .snapshots(),
                   builder: (context, snapshot) {
-                    // 1. Safety Checks
                     if (snapshot.hasError ||
                         !snapshot.hasData ||
                         snapshot.data!.docs.isEmpty) {
                       return const SizedBox.shrink();
                     }
 
-                    // 2. Find active order (Filter out completed/cancelled)
                     DocumentSnapshot? activeOrder;
                     try {
                       activeOrder = snapshot.data!.docs.firstWhere((doc) {
@@ -75,10 +72,8 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                       activeOrder = null;
                     }
 
-                    // 3. Hide if no active order
                     if (activeOrder == null) return const SizedBox.shrink();
 
-                    // 4. Show Button
                     return FloatingActionButton.extended(
                       heroTag: "tracker_btn",
                       onPressed: () {
@@ -109,7 +104,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 ),
               ),
 
-      // ✅ MAIN BODY (Your original UI)
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -128,23 +122,17 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
               ),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Current Location",
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                Text(
-                  "Universiti Malaya",
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+            // ✅ UPDATED TITLE: Replaced Location with simple Title
+            title: const Text(
+              "Marketplace",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 22,
+              ),
             ),
+            centerTitle: false,
+
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(60),
               child: Container(
