@@ -14,31 +14,26 @@ class ActivityShareHelper {
       final snap = await _db.collection('users').doc(userId).get();
       if (!snap.exists) return null;
       final data = snap.data() as Map<String, dynamic>;
-
-      // 🔧 adjust these keys if your user doc uses different field names
       return (data['name'] ?? data['displayName'] ?? data['username']) as String?;
     } catch (_) {
       return null;
     }
   }
 
-  /// 1. (Optionally) record an activity
-  /// 2. Ask user if they want to share it to Feed
-  /// 3. If yes → create a feed post
+  /// Existing method (keeps the dialog logic for other parts of the app)
   static Future<void> recordAndMaybeShare({
     required BuildContext context,
     required String userId,
     required String title,
     required String description,
     required int points,
-    required String type,                  // e.g. 'p2p_free', 'bin', 'merchant'
-    Map<String, dynamic>? extra,           // any extra info
+    required String type,
+    Map<String, dynamic>? extra,
     bool createActivity = true,
-    String? userDisplayName,               // optional: you can still pass it
+    String? userDisplayName,
   }) async {
     String? activityId;
 
-    // 1. Create activity only if requested
     if (createActivity) {
       activityId = await _activityService.addGenericActivity(
         userId: userId,
@@ -50,14 +45,11 @@ class ActivityShareHelper {
       );
     }
 
-    // 2. Ask if user wants to share as a post
     final bool? shouldShare = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: const Text('Share to Feed?'),
           content: const Text(
             'Do you want to share this activity so others can see your impact?',
@@ -76,36 +68,54 @@ class ActivityShareHelper {
       },
     );
 
-    if (shouldShare != true) return;
+    if (shouldShare == true) {
+      await shareToFeedDirectly(
+        userId: userId,
+        userDisplayName: userDisplayName,
+        title: title,
+        description: description,
+        points: points,
+        type: type,
+        extra: extra,
+        activityId: activityId,
+      );
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Shared to Feed ✅')),
+        );
+      }
+    }
+  }
 
-    // 3. Resolve the display name:
-    //    1) prefer userDisplayName passed in
-    //    2) else fetch from /users
-    //    3) fallback "You"
-    final resolvedName =
-        userDisplayName ?? await _fetchUserName(userId) ?? 'You';
+  /// NEW METHOD: Posts directly to feed without asking
+  static Future<void> shareToFeedDirectly({
+    required String userId,
+    required String? userDisplayName,
+    required String title,
+    required String description,
+    required int points,
+    required String type,
+    Map<String, dynamic>? extra,
+    String? activityId,
+  }) async {
+    final resolvedName = userDisplayName ?? await _fetchUserName(userId) ?? 'You';
 
-    // Turn "You claimed a" -> "Jun claimed a"
     String _toFeedText(String raw) {
-      if (raw.startsWith('You ')) {
-        return raw.replaceFirst('You ', '$resolvedName ');
-      }
-      if (raw.startsWith('you ')) {
-        return raw.replaceFirst('you ', '$resolvedName ');
-      }
+      if (raw.startsWith('You ')) return raw.replaceFirst('You ', '$resolvedName ');
+      if (raw.startsWith('you ')) return raw.replaceFirst('you ', '$resolvedName ');
       return raw;
     }
 
     final feedTitle = _toFeedText(title);
     final feedDescription = _toFeedText(description);
 
-    // 4. Create feed post doc
     await _db.collection('feed_posts').add({
       'userId': userId,
-      'userName': resolvedName,   // 👈 now ALWAYS filled
+      'userName': resolvedName,
       'activityId': activityId,
-      'title': feedTitle,         // 👈 "Jun claimed a"
-      'description': feedDescription, // 👈 "Jun received food from Daidi."
+      'title': feedTitle,
+      'description': feedDescription,
       'rawTitle': title,
       'rawDescription': description,
       'points': points,
@@ -115,13 +125,5 @@ class ActivityShareHelper {
       'likesCount': 0,
       'likedBy': <String>[],
     });
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Shared to Feed ✅')),
-      );
-    }
   }
 }
-
-

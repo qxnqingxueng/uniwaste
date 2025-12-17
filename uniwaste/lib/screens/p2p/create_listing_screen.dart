@@ -35,6 +35,12 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   final ImagePicker _picker = ImagePicker();
 
   @override
+  void initState() {
+    super.initState();
+    _updateExpiryLogic('cooked'); 
+  }
+
+  @override
   void dispose() {
     _descriptionController.dispose();
     _priceController.dispose();
@@ -77,19 +83,37 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     });
   }
 
-  Future<void> _selectExpiryDate() async {
-    final DateTime? picked = await showDatePicker(
+Future<void> _selectExpiryDate() async {
+    // 1. Pick the Date
+    final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
-    if (picked != null) {
-      // Optional: Add TimePicker
-      setState(() {
-        _expiryDate = picked;
-      });
-    }
+
+    if (pickedDate == null) return; // User cancelled
+
+    if (!mounted) return;
+
+    // 2. Pick the Time
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (pickedTime == null) return; // User cancelled time
+
+    // 3. Combine Date + Time
+    setState(() {
+      _expiryDate = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
+    });
   }
 
   // --- Submit to Firestore ---
