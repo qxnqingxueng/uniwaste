@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';                    // 👈 for BuildContext
+import 'package:flutter/material.dart'; // 👈 for BuildContext
 import 'package:uniwaste/services/activity_service.dart';
-import 'package:uniwaste/services/activity_share_helper.dart'; // 👈 new import
+// 👈 new import
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -47,9 +47,7 @@ class ChatService {
       // Ensure participantNames exists and is up to date
       final data = snap.data() as Map<String, dynamic>;
       if (data['participantNames'] == null) {
-        await chatRef.update({
-          'participantNames': participantNames,
-        });
+        await chatRef.update({'participantNames': participantNames});
       }
     }
 

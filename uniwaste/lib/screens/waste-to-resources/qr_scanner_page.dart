@@ -152,17 +152,17 @@ class _QrScanScreenState extends State<QrScanScreen> {
           ),
 
           // The Text
-          Center(
+          const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min, // Shrink column to fit content
               children: [
                 // Invisible box representing the Scanner Area
-                const SizedBox(height: scanBoxSize, width: scanBoxSize),
+                SizedBox(height: scanBoxSize, width: scanBoxSize),
 
                 // Small gap
-                const SizedBox(height: 100),
+                SizedBox(height: 100),
 
-                const Text(
+                Text(
                   "Align QR code within the frame",
                   style: TextStyle(
                     color: Colors.white,
@@ -187,7 +187,7 @@ class QrScannerOverlayShape extends ShapeBorder {
   final double borderLength;
   final double cutOutSize;
 
-  QrScannerOverlayShape({
+  const QrScannerOverlayShape({
     this.borderColor = const Color.fromRGBO(119, 136, 115, 1.0),
     this.borderWidth = 5.0,
     this.overlayColor = Colors.black,

@@ -44,10 +44,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   // Fetch & cache avatar/profile
   Future<void> _loadProfileAndCache() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.otherUserId)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.otherUserId)
+              .get();
 
       if (doc.exists) {
         _otherUserData = doc.data();
@@ -83,27 +84,28 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       final String currentUserId = widget.currentUserId;
       final String otherUserId = widget.otherUserId;
 
-      final currentRef =
-          FirebaseFirestore.instance.collection('users').doc(currentUserId);
-      final otherRef =
-          FirebaseFirestore.instance.collection('users').doc(otherUserId);
+      final currentRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUserId);
+      final otherRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(otherUserId);
 
       final currentSnap = await currentRef.get();
       final otherSnap = await otherRef.get();
 
       if (!currentSnap.exists || !otherSnap.exists) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('User profile not found')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('User profile not found')));
         return;
       }
 
       final currentData = currentSnap.data() as Map<String, dynamic>;
       final otherData = otherSnap.data() as Map<String, dynamic>;
 
-      final String otherName =
-          otherData['name'] ?? widget.otherUserName;
+      final String otherName = otherData['name'] ?? widget.otherUserName;
 
       final List<dynamic> currentFriends =
           (currentData['friends'] as List<dynamic>?) ?? [];
@@ -194,12 +196,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       context: context,
       builder: (dialogCtx) {
         final String name = _otherUserData?['name'] ?? widget.otherUserName;
-        final String gender =
-            _otherUserData?['gender'] ?? 'Not Specified';
-        final String ranking =
-            _otherUserData?['ranking'] ?? '1st Eco-Warrior';
-        final String email =
-            _otherUserData?['email'] ?? 'Not Provided';
+        final String gender = _otherUserData?['gender'] ?? 'Not Specified';
+        final String ranking = _otherUserData?['ranking'] ?? '1st Eco-Warrior';
+        final String email = _otherUserData?['email'] ?? 'Not Provided';
         final String? photoBase64 = _otherUserData?['photoBase64'];
 
         final userRef = FirebaseFirestore.instance
@@ -214,8 +213,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             bool hasIncoming = false;
 
             if (snap.hasData && snap.data != null && snap.data!.exists) {
-              final data =
-                  snap.data!.data() as Map<String, dynamic>?;
+              final data = snap.data!.data() as Map<String, dynamic>?;
               final List<dynamic> friends =
                   (data?['friends'] as List<dynamic>?) ?? [];
               final List<dynamic> outgoing =
@@ -239,8 +237,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               buttonText = 'Add to friends';
             }
 
-            final bool canTap =
-                !isFriend && !hasOutgoing && !hasIncoming;
+            final bool canTap = !isFriend && !hasOutgoing && !hasIncoming;
 
             return Dialog(
               shape: RoundedRectangleBorder(
@@ -257,8 +254,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color.fromRGBO(
-                              119, 136, 115, 1.0),
+                          color: const Color.fromRGBO(119, 136, 115, 1.0),
                           width: 3,
                         ),
                       ),
@@ -266,17 +262,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         radius: 50,
                         backgroundColor: Colors.grey.shade200,
                         backgroundImage: _profileImageProvider,
-                        child: _profileImageProvider == null
-                            ? Text(
-                                name.isNotEmpty
-                                    ? name[0].toUpperCase()
-                                    : "?",
-                                style: const TextStyle(
-                                  fontSize: 40,
-                                  color: Colors.grey,
-                                ),
-                              )
-                            : null,
+                        child:
+                            _profileImageProvider == null
+                                ? Text(
+                                  name.isNotEmpty ? name[0].toUpperCase() : "?",
+                                  style: const TextStyle(
+                                    fontSize: 40,
+                                    color: Colors.grey,
+                                  ),
+                                )
+                                : null,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -327,20 +322,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: canTap
-                            ? () async {
-                                await _sendFriendRequestFromChat();
-                              }
-                            : null,
+                        onPressed:
+                            canTap
+                                ? () async {
+                                  await _sendFriendRequestFromChat();
+                                }
+                                : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: canTap
-                              ? const Color.fromRGBO(
-                                  119, 136, 115, 1.0)
-                              : Colors.grey.shade400,
+                          backgroundColor:
+                              canTap
+                                  ? const Color.fromRGBO(119, 136, 115, 1.0)
+                                  : Colors.grey.shade400,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: Text(buttonText),
@@ -357,23 +352,21 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  FriendProfileScreen(
-                                name: name,
-                                email: email,
-                                avatarBase64: photoBase64,
-                              ),
+                              builder:
+                                  (context) => FriendProfileScreen(
+                                    name: name,
+                                    email: email,
+                                    avatarBase64: photoBase64,
+                                  ),
                             ),
                           );
                         },
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(
-                            color: Color.fromRGBO(
-                                119, 136, 115, 1.0),
+                            color: Color.fromRGBO(119, 136, 115, 1.0),
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: const Text('View Details'),
@@ -399,15 +392,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                  fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -426,8 +415,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildItemCard(Map<String, dynamic> data, bool isMe) {
-    final cardData =
-        data['cardData'] as Map<String, dynamic>? ?? {};
+    final cardData = data['cardData'] as Map<String, dynamic>? ?? {};
     final String title = cardData['title'] ?? 'Item';
     final String desc = cardData['description'] ?? '';
     final bool isFree = cardData['isFree'] ?? true;
@@ -457,8 +445,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(
                   Icons.check_circle,
                   color: Color.fromRGBO(119, 136, 115, 1.0),
@@ -478,35 +466,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             const Divider(),
             Text(
               title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             if (desc.isNotEmpty)
               Text(
                 desc,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: 12, color: Colors.grey),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: isFree
-                    ? Colors.green.shade50
-                    : Colors.orange.shade50,
+                color: isFree ? Colors.green.shade50 : Colors.orange.shade50,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                isFree
-                    ? "FREE"
-                    : "Price: RM ${price.toStringAsFixed(2)}",
+                isFree ? "FREE" : "Price: RM ${price.toStringAsFixed(2)}",
                 style: TextStyle(
                   color: isFree ? Colors.green : Colors.orange,
                   fontWeight: FontWeight.bold,
@@ -523,9 +500,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
@@ -539,28 +514,26 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               onTap: _showUserCard,
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor:
-                    const Color.fromRGBO(210, 220, 182, 1),
+                backgroundColor: const Color.fromRGBO(210, 220, 182, 1),
                 backgroundImage: _profileImageProvider,
-                child: _profileImageProvider == null
-                    ? Text(
-                        widget.otherUserName.isNotEmpty
-                            ? widget.otherUserName[0]
-                                .toUpperCase()
-                            : "?",
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                      )
-                    : null,
+                child:
+                    _profileImageProvider == null
+                        ? Text(
+                          widget.otherUserName.isNotEmpty
+                              ? widget.otherUserName[0].toUpperCase()
+                              : "?",
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        )
+                        : null,
               ),
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     widget.otherUserName,
@@ -593,9 +566,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               stream: _chatService.getMessages(widget.chatId),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final messages = snapshot.data!.docs;
@@ -605,10 +576,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final data = messages[index].data()
-                        as Map<String, dynamic>;
-                    final isMe =
-                        data['senderId'] == widget.currentUserId;
+                    final data = messages[index].data() as Map<String, dynamic>;
+                    final isMe = data['senderId'] == widget.currentUserId;
 
                     if (data['type'] == 'item_claim') {
                       return _buildItemCard(data, isMe);
@@ -617,69 +586,53 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     final Timestamp? timestamp =
                         data['timestamp'] as Timestamp?;
                     return Align(
-                      alignment: isMe
-                          ? Alignment.centerRight
-                          : Alignment.centerLeft,
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(
-                            vertical: 4),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
                         padding: const EdgeInsets.all(12),
                         constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context)
-                                  .size
-                                  .width *
-                              0.75,
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
                         decoration: BoxDecoration(
-                          color: isMe
-                              ? const Color.fromRGBO(
-                                  119, 136, 115, 1.0)
-                              : Colors.white,
+                          color:
+                              isMe
+                                  ? const Color.fromRGBO(119, 136, 115, 1.0)
+                                  : Colors.white,
                           borderRadius: BorderRadius.only(
-                            topLeft:
-                                const Radius.circular(12),
-                            topRight:
-                                const Radius.circular(12),
-                            bottomLeft: isMe
-                                ? const Radius.circular(12)
-                                : Radius.zero,
-                            bottomRight: isMe
-                                ? Radius.zero
-                                : const Radius.circular(12),
+                            topLeft: const Radius.circular(12),
+                            topRight: const Radius.circular(12),
+                            bottomLeft:
+                                isMe ? const Radius.circular(12) : Radius.zero,
+                            bottomRight:
+                                isMe ? Radius.zero : const Radius.circular(12),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey
-                                  .withOpacity(0.1),
+                              color: Colors.grey.withOpacity(0.1),
                               blurRadius: 4,
                             ),
                           ],
                         ),
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               data['text'] ?? '',
                               style: TextStyle(
-                                color: isMe
-                                    ? Colors.white
-                                    : Colors.black87,
+                                color: isMe ? Colors.white : Colors.black87,
                               ),
                             ),
                             if (timestamp != null)
                               Padding(
-                                padding:
-                                    const EdgeInsets.only(
-                                        top: 4),
+                                padding: const EdgeInsets.only(top: 4),
                                 child: Text(
-                                  DateFormat('h:mm a').format(
-                                      timestamp.toDate()),
+                                  DateFormat(
+                                    'h:mm a',
+                                  ).format(timestamp.toDate()),
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: isMe
-                                        ? Colors.white70
-                                        : Colors.grey,
+                                    color: isMe ? Colors.white70 : Colors.grey,
                                   ),
                                 ),
                               ),
@@ -707,20 +660,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         filled: true,
                         fillColor: Colors.grey.shade100,
                         border: OutlineInputBorder(
-                          borderRadius:
-                              BorderRadius.circular(24),
+                          borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(
-                                horizontal: 20),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   CircleAvatar(
-                    backgroundColor:
-                        const Color.fromRGBO(119, 136, 115, 1.0),
+                    backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
                     child: IconButton(
                       icon: const Icon(
                         Icons.send,

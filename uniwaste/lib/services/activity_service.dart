@@ -37,7 +37,7 @@ class ActivityService {
     });
 
     // also bump user points here
-    await _addPointsToUser(userId, points);   // 🔥 FIXED: use existing helper
+    await _addPointsToUser(userId, points); // 🔥 FIXED: use existing helper
 
     return docRef.id;
   }
@@ -48,8 +48,8 @@ class ActivityService {
     required String title,
     required String description,
     required int points,
-    required String type,          // e.g. 'p2p_donor', 'p2p_claimer'
-    Map<String, dynamic>? extra,   // optional extra metadata
+    required String type, // e.g. 'p2p_donor', 'p2p_claimer'
+    Map<String, dynamic>? extra, // optional extra metadata
   }) async {
     try {
       await _db.collection('activities').add({
@@ -68,39 +68,35 @@ class ActivityService {
 
   /// Internal helper: add (or create) points field on user document
   Future<void> _addPointsToUser(String userId, int deltaPoints) async {
-  try {
-    final userRef = _db.collection('users').doc(userId);
+    try {
+      final userRef = _db.collection('users').doc(userId);
 
-    await _db.runTransaction((tx) async {
-      final snap = await tx.get(userRef);
-      final data = snap.data() as Map<String, dynamic>? ?? {};
+      await _db.runTransaction((tx) async {
+        final snap = await tx.get(userRef);
+        final data = snap.data() ?? {};
 
-      final oldPoints = (data['points'] ?? 0) as int;
-      final newPoints = oldPoints + deltaPoints;
+        final oldPoints = (data['points'] ?? 0) as int;
+        final newPoints = oldPoints + deltaPoints;
 
-      tx.update(userRef, {'points': newPoints});
+        tx.update(userRef, {'points': newPoints});
 
-      // 🔥 Check if user crossed 3000-point threshold
-      int oldMilestone = oldPoints ~/ 350;
-      int newMilestone = newPoints ~/ 350;
+        // 🔥 Check if user crossed 3000-point threshold
+        int oldMilestone = oldPoints ~/ 350;
+        int newMilestone = newPoints ~/ 350;
 
-      if (newMilestone > oldMilestone) {
-        // User reached a new 3000 milestone → award voucher
-        _grantVoucher(userId);
-      }
-    });
-
-  } catch (e) {
-    debugPrint('❌ Error updating points for $userId: $e');
+        if (newMilestone > oldMilestone) {
+          // User reached a new 3000 milestone → award voucher
+          _grantVoucher(userId);
+        }
+      });
+    } catch (e) {
+      debugPrint('❌ Error updating points for $userId: $e');
+    }
   }
-}
 
   Future<void> _grantVoucher(String userId) async {
-    final voucherRef = _db
-        .collection('users')
-        .doc(userId)
-        .collection('vouchers')
-        .doc();
+    final voucherRef =
+        _db.collection('users').doc(userId).collection('vouchers').doc();
 
     await voucherRef.set({
       'title': "RM3 Discount Voucher",
@@ -113,7 +109,6 @@ class ActivityService {
 
     debugPrint("🎉 Voucher granted to $userId");
   }
-
 
   /// Public: record a completed P2P transaction for BOTH users
   Future<void> recordP2PTransaction({

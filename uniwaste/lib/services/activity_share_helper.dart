@@ -27,10 +27,10 @@ class ActivityShareHelper {
     required String title,
     required String description,
     required int points,
-    required String type,
-    Map<String, dynamic>? extra,
+    required String type, // e.g. 'p2p_free', 'bin', 'merchant'
+    Map<String, dynamic>? extra, // any extra info
     bool createActivity = true,
-    String? userDisplayName,
+    String? userDisplayName,               // optional: you can still pass it
   }) async {
     String? activityId;
 
@@ -101,21 +101,26 @@ class ActivityShareHelper {
   }) async {
     final resolvedName = userDisplayName ?? await _fetchUserName(userId) ?? 'You';
 
-    String _toFeedText(String raw) {
-      if (raw.startsWith('You ')) return raw.replaceFirst('You ', '$resolvedName ');
-      if (raw.startsWith('you ')) return raw.replaceFirst('you ', '$resolvedName ');
+    // Turn "You claimed a" -> "Jun claimed a"
+    String toFeedText(String raw) {
+      if (raw.startsWith('You ')) {
+        return raw.replaceFirst('You ', '$resolvedName ');
+      }
+      if (raw.startsWith('you ')) {
+        return raw.replaceFirst('you ', '$resolvedName ');
+      }
       return raw;
     }
 
-    final feedTitle = _toFeedText(title);
-    final feedDescription = _toFeedText(description);
+    final feedTitle = toFeedText(title);
+    final feedDescription = toFeedText(description);
 
     await _db.collection('feed_posts').add({
       'userId': userId,
       'userName': resolvedName,
       'activityId': activityId,
-      'title': feedTitle,
-      'description': feedDescription,
+      'title': feedTitle, // 👈 "Jun claimed a"
+      'description': feedDescription, // 👈 "Jun received food from Daidi."
       'rawTitle': title,
       'rawDescription': description,
       'points': points,
@@ -125,5 +130,11 @@ class ActivityShareHelper {
       'likesCount': 0,
       'likedBy': <String>[],
     });
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Shared to Feed ✅')));
+    }
   }
 }

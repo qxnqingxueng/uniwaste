@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/p2p_student_page.dart';
 import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
+import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
+import 'package:uniwaste/screens/marketplace/home/marketplace_home_screen.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -18,7 +20,6 @@ class _DashboardPageState extends State<DashboardPage> {
   int _currentPoster = 0;
   Timer? _timer;
 
-  // Make sure these images exist in your assets folder!
   final List<String> _posterImages = [
     "assets/images/P2P.png",
     "assets/images/P2P.png",
@@ -135,14 +136,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: InkWell(
                       onTap: () {
                         print("Points Clicked");
-                        /*
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const pagename()),
-                              ); 
-                            */
                       },
-                      // Rounded corners on the left side only
                       borderRadius: const BorderRadius.horizontal(
                         left: Radius.circular(12),
                       ),
@@ -197,13 +191,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     child: InkWell(
                       onTap: () {
                         print("Vouchers Clicked");
-                        /*Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const pagename()),
-                              ); 
-                            */
                       },
-                      // Rounded corners on the right side only
                       borderRadius: const BorderRadius.horizontal(
                         right: Radius.circular(12),
                       ),
@@ -261,7 +249,6 @@ class _DashboardPageState extends State<DashboardPage> {
                     subtitle: "Donation / Sell",
                     imagePath: "assets/images/P2P.png",
                     onTap: () {
-                      // Navigate to the real page
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -272,17 +259,22 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 const SizedBox(width: 16),
+
+                // ✅ MERCHANT CARD (UPDATED)
                 Expanded(
                   child: _buildCategoryCard(
                     title: "Merchant",
                     subtitle: "Surplus Left",
                     imagePath: "assets/images/merchant.jpg",
-                    onTap: () => print("Tapped Merchant"),
-                    /*Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const pagename()),
-                              ); 
-                            */
+                    onTap: () {
+                      // Navigate to Marketplace Home
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MarketplaceHomeScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -291,14 +283,13 @@ class _DashboardPageState extends State<DashboardPage> {
 
           const SizedBox(height: 20),
 
-          // 4. MAP CARD (Background Image)
+          // 4. MAP CARD
           SizedBox(
             height: 120,
             child: _buildBackgroundImageCard(
               title: "Waste Bin Map",
               imagePath: "assets/images/map.jpg",
               onTap: () {
-                debugPrint("Tapped Map");
                 Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const WasteBinMap()),
@@ -333,7 +324,6 @@ class _DashboardPageState extends State<DashboardPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Image Section
               Expanded(
                 child: Image.asset(
                   imagePath,
@@ -347,8 +337,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Text Section
               Text(
                 title,
                 textAlign: TextAlign.center,
@@ -358,7 +346,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-
               if (subtitle != null) ...[
                 const SizedBox(height: 4),
                 Text(

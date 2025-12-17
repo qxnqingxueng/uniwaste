@@ -1,7 +1,7 @@
-name: waste_repository
-description: The repo that handles waste
-publish_to: none
-version: 0.0.1
+name: merchant_repository
+description: A repository that manages merchant data and menu items.
+version: 0.1.0
+publish_to: "none"
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -9,20 +9,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  user_repository:
-    path: ../user_repository
 
-equatable: ^2.0.5
-firebase_auth: ^4.16.0
-cloud_firestore: ^4.7.3
-firebase_storage: ^11.3.7
-rxdart: ^0.27.7
-path: ^1.8.3
+  # Firebase
+  cloud_firestore: ^5.4.4
+  firebase_core: ^3.6.0
+
+  # Utilities
+  equatable: ^2.0.5
+  uuid: ^4.5.1 # Useful for generating unique IDs for menu items
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
-
-flutter:
-  uses-material-design: true
+  flutter_lints: ^4.0.0

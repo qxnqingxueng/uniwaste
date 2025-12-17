@@ -84,10 +84,7 @@ class FriendProfileScreen extends StatelessWidget {
 
             Text(
               email,
-              style: const TextStyle(
-                fontSize: 13,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
             ),
 
             const SizedBox(height: 24),
@@ -106,10 +103,7 @@ class FriendProfileScreen extends StatelessWidget {
                     offset: const Offset(0, 6),
                   ),
                 ],
-                border: Border.all(
-                  color: _accent.withOpacity(0.5),
-                  width: 1.2,
-                ),
+                border: Border.all(color: _accent.withOpacity(0.5), width: 1.2),
               ),
               child: Row(
                 children: [
@@ -120,10 +114,7 @@ class FriendProfileScreen extends StatelessWidget {
                       children: [
                         const Text(
                           'Points',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -153,10 +144,7 @@ class FriendProfileScreen extends StatelessWidget {
                       children: [
                         const Text(
                           'Ranking',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
                         ),
                         const SizedBox(height: 6),
                         Container(
@@ -173,18 +161,18 @@ class FriendProfileScreen extends StatelessWidget {
                             ),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Row(
+                          child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.emoji_events_outlined,
                                 size: 18,
                                 color: Colors.white,
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Text(
                                 rank,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -208,10 +196,7 @@ class FriendProfileScreen extends StatelessWidget {
               children: [
                 const Text(
                   'Activity',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 if (activities.length > 3)
                   TextButton(
@@ -220,10 +205,7 @@ class FriendProfileScreen extends StatelessWidget {
                     },
                     child: const Text(
                       'More',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.black87,
-                      ),
+                      style: TextStyle(fontSize: 13, color: Colors.black87),
                     ),
                   ),
               ],
@@ -337,10 +319,6 @@ class FriendProfileScreen extends StatelessWidget {
         color = Colors.grey;
     }
 
-    return Icon(
-      icon,
-      size: 22,
-      color: color,
-    );
+    return Icon(icon, size: 22, color: color);
   }
 }
