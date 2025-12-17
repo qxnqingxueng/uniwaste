@@ -11,7 +11,6 @@ import 'package:uniwaste/screens/marketplace/checkout/models/delivery_info.dart'
 import 'package:uniwaste/screens/marketplace/checkout/models/order_model.dart';
 import 'package:uniwaste/screens/marketplace/checkout/repositories/order_repository.dart';
 import 'package:uniwaste/screens/marketplace/checkout/services/payment_services.dart';
-import 'package:uniwaste/screens/marketplace/checkout/widgets/voucher_page.dart';
 import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -28,29 +27,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isProcessing = false;
   bool isDelivery = true;
 
+  // Colors
+  final Color bgCream = const Color(0xFFF1F3E0);
+  final Color sageGreen = const Color(0xFFD2DCB6);
+  final Color accentGreen = const Color(0xFFA1BC98);
+  final Color darkGreen = const Color(0xFF778873);
+
   Future<void> _handlePayment(List<CartItemModel> items, double amount) async {
     setState(() => _isProcessing = true);
 
-    // 1. Stripe Payment
+    // 1. Process Payment
     final success = await _paymentService.makePayment(amount, "MYR");
 
     if (success) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final orderId = DateTime.now().millisecondsSinceEpoch.toString();
-
-        // ✅ GET MERCHANT ID SAFELY (From the first item in the cart)
         final String merchantId =
             items.isNotEmpty ? (items.first.merchantId ?? '') : '';
 
-        if (merchantId.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Error: Item has no Merchant ID")),
-          );
-          setState(() => _isProcessing = false);
-          return;
+        // ✅ FIXED LOGIC: Use Transaction for Safe Updates
+        try {
+          await FirebaseFirestore.instance.runTransaction((transaction) async {
+            for (var item in items) {
+              DocumentReference itemRef = FirebaseFirestore.instance
+                  .collection('food_listings')
+                  .doc(item.id);
+
+              // Read fresh data first to ensure stock exists
+              DocumentSnapshot snapshot = await transaction.get(itemRef);
+
+              if (snapshot.exists) {
+                // Safely convert to int (handle String/Number mismatch)
+                var currentQty = snapshot.get('quantity');
+                int qtyInt =
+                    (currentQty is int)
+                        ? currentQty
+                        : int.tryParse(currentQty.toString()) ?? 0;
+
+                int newQty = qtyInt - item.quantity;
+                if (newQty < 0) newQty = 0; // Prevent negative stock
+
+                transaction.update(itemRef, {'quantity': newQty});
+                print("✅ Updated ${item.name}: $qtyInt -> $newQty");
+              } else {
+                print("⚠️ Item not found in DB: ${item.id}");
+              }
+            }
+          });
+        } catch (e) {
+          print("❌ Inventory Update Failed: $e");
+          // Consider showing a SnackBar here if critical, but we continue to create order
         }
 
+        // 2. Create Order
         final order = OrderModel(
           orderId: orderId,
           userId: user.uid,
@@ -64,8 +94,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ? "${_deliveryInfo.name}, ${_deliveryInfo.address}"
                   : "Self Pick-Up",
           method: isDelivery ? 'Delivery' : 'Pick Up',
-
-          // ✅ PASS IT HERE
           merchantId: merchantId,
         );
 
@@ -93,12 +121,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: bgCream,
       appBar: AppBar(
-        title: const Text("Checkout", style: TextStyle(color: Colors.black)),
-        backgroundColor: Colors.white,
+        title: Text(
+          "Checkout",
+          style: TextStyle(color: darkGreen, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: bgCream,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: darkGreen),
       ),
       body: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
@@ -118,7 +149,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Toggles
+                // Toggle Buttons
                 Row(
                   children: [
                     Expanded(
@@ -140,11 +171,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Dynamic Address Section
                 if (isDelivery) ...[
-                  const Text(
+                  Text(
                     "Delivery Address",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: darkGreen,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -155,14 +189,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.location_on, color: Colors.red),
+                      leading: Icon(Icons.location_on, color: darkGreen),
                       title: Text(
                         _deliveryInfo.name,
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(_deliveryInfo.address),
                       trailing: TextButton(
-                        child: const Text("Edit"),
+                        child: Text(
+                          "Edit",
+                          style: TextStyle(color: accentGreen),
+                        ),
                         onPressed: () async {
                           final result = await Navigator.push(
                             context,
@@ -180,9 +217,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                 ] else ...[
-                  const Text(
+                  Text(
                     "Pick Up Location",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: darkGreen,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Container(
@@ -191,11 +232,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.store, color: Colors.orange, size: 30),
-                        SizedBox(width: 12),
-                        Expanded(
+                        Icon(Icons.store, color: darkGreen, size: 30),
+                        const SizedBox(width: 12),
+                        const Expanded(
                           child: Text(
                             "Collect at Merchant Counter when 'Ready'",
                             style: TextStyle(fontWeight: FontWeight.bold),
@@ -261,7 +302,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ? null
                             : () => _handlePayment(checkoutItems, total),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1B5E20),
+                      backgroundColor: darkGreen, // #778873
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child:
                         _isProcessing
@@ -295,9 +339,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFE8F5E9) : Colors.white,
+          color: isActive ? sageGreen : Colors.white, // #D2DCB6
           border: Border.all(
-            color: isActive ? const Color(0xFF1B5E20) : Colors.grey.shade300,
+            color: isActive ? darkGreen : Colors.grey.shade300,
           ),
           borderRadius: BorderRadius.circular(8),
         ),
@@ -305,7 +349,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Text(
           text,
           style: TextStyle(
-            color: isActive ? const Color(0xFF1B5E20) : Colors.grey,
+            color: isActive ? darkGreen : Colors.grey,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -327,7 +371,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           value,
           style: TextStyle(
             fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-            color: isBold ? Colors.green : Colors.black,
+            color: isBold ? darkGreen : Colors.black,
           ),
         ),
       ],

@@ -19,7 +19,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = "All";
 
-  // Categories
   final List<String> _categories = [
     "All",
     "Halal",
@@ -27,6 +26,11 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     "No Pork",
     "Cheap Eats",
   ];
+
+  // ✅ NEW PALETTE
+  final Color bgCream = const Color(0xFFF1F3E0);
+  final Color darkGreen = const Color(0xFF778873);
+  final Color midGreen = const Color(0xFFA1BC98);
 
   @override
   void initState() {
@@ -39,9 +43,8 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-
-      // ✅ TRACKER BUTTON (Kept exactly as it was)
+      backgroundColor: bgCream, // #F1F3E0
+      // ✅ TRACKER BUTTON
       floatingActionButton:
           user == null
               ? null
@@ -57,9 +60,8 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.hasError ||
                         !snapshot.hasData ||
-                        snapshot.data!.docs.isEmpty) {
+                        snapshot.data!.docs.isEmpty)
                       return const SizedBox.shrink();
-                    }
 
                     DocumentSnapshot? activeOrder;
                     try {
@@ -76,17 +78,17 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
 
                     return FloatingActionButton.extended(
                       heroTag: "tracker_btn",
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (_) =>
-                                    OrderStatusScreen(orderId: activeOrder!.id),
+                      onPressed:
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => OrderStatusScreen(
+                                    orderId: activeOrder!.id,
+                                  ),
+                            ),
                           ),
-                        );
-                      },
-                      backgroundColor: const Color(0xFF1B5E20),
+                      backgroundColor: darkGreen, // #778873
                       elevation: 10,
                       icon: const Icon(
                         Icons.delivery_dining,
@@ -112,40 +114,33 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
             expandedHeight: 120.0,
             floating: true,
             pinned: true,
-            backgroundColor: Colors.white,
+            backgroundColor: bgCream, // Matches background
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(
-                Icons.arrow_back_ios,
-                color: Colors.black,
-                size: 20,
-              ),
+              icon: Icon(Icons.arrow_back_ios, color: darkGreen, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
-            // ✅ UPDATED TITLE: Replaced Location with simple Title
-            title: const Text(
+            title: Text(
               "Marketplace",
               style: TextStyle(
-                color: Colors.black,
+                color: darkGreen,
                 fontWeight: FontWeight.bold,
-                fontSize: 22,
+                fontSize: 24,
               ),
             ),
-            centerTitle: false,
-
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(60),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                color: Colors.white,
+                color: bgCream,
                 child: TextField(
                   controller: _searchController,
                   onChanged: (v) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Search for food...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    prefixIcon: Icon(Icons.search, color: darkGreen),
                     filled: true,
-                    fillColor: Colors.grey[100],
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -172,9 +167,12 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     final isSelected = _selectedCategory == cat;
                     return ActionChip(
                       label: Text(cat),
-                      backgroundColor: isSelected ? Colors.green : Colors.white,
+                      backgroundColor:
+                          isSelected
+                              ? midGreen
+                              : Colors.white, // #A1BC98 for active
                       labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : Colors.black,
+                        color: isSelected ? Colors.white : darkGreen,
                       ),
                       onPressed: () => setState(() => _selectedCategory = cat),
                     );
@@ -196,11 +194,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     ),
                   ),
                 );
-              if (state is MerchantError)
-                return SliverToBoxAdapter(
-                  child: Center(child: Text("Error: ${state.message}")),
-                );
-
               if (state is MerchantLoaded) {
                 final merchants =
                     state.merchants.where((m) {
@@ -230,19 +223,18 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                       final merchant = merchants[index];
                       return _FancyMerchantCard(
                         merchant: merchant,
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (context) => MerchantPage(
-                                    merchantId: merchant.id,
-                                    merchantName: merchant.name,
-                                    imageUrl: merchant.imageUrl,
-                                  ),
+                        onTap:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => MerchantPage(
+                                      merchantId: merchant.id,
+                                      merchantName: merchant.name,
+                                      imageUrl: merchant.imageUrl,
+                                    ),
+                              ),
                             ),
-                          );
-                        },
                       );
                     }, childCount: merchants.length),
                   ),
