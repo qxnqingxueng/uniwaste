@@ -92,12 +92,13 @@ class _HomeScreenState extends State<HomeScreen> {
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
       body: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              physics: const NeverScrollableScrollPhysics(), // Optional: Disable swipe if you only want tab clicks
-              children: [
-                // 0. Dashboard
-                const DashboardPage(),
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics:
+            const NeverScrollableScrollPhysics(), // Optional: Disable swipe if you only want tab clicks
+        children: [
+          // 0. Dashboard
+          const DashboardPage(),
 
           // Cart / Waste
           const CartScreen(),
@@ -106,13 +107,12 @@ class _HomeScreenState extends State<HomeScreen> {
           const FeedScreen(),
 
           // Profile
-          const ProfileScreen()
-              ],
-            ),
-          /*
-          CartPage(), //TO be updated
-          */
-
+          const ProfileScreen(),
+        ],
+      ),
+      /*
+        CartPage(), //TO be updated
+      */
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
       bottomNavigationBar: Container(

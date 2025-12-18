@@ -15,6 +15,31 @@ class ActivityService {
         .snapshots();
   }
 
+  Future<void> recordQrScan({
+    required String userId,
+    required String locationName,
+    required int points,
+  }) async {
+    try {
+      // 1. Create the history record
+      await _addActivity(
+        userId: userId,
+        title: 'You scanned waste bin',
+        description: 'Waste bin at $locationName',
+        points: points,
+        type: 'qr_scan',
+      );
+
+      // 2. Add points to user wallet
+      await _addPointsToUser(userId, points);
+
+      debugPrint("✅ QR Scan recorded for $userId at $locationName");
+    } catch (e) {
+      debugPrint("❌ Error recording QR scan: $e");
+      rethrow;
+    }
+  }
+
   /// Generic single-activity writer used by ActivityShareHelper
   Future<String> addGenericActivity({
     required String userId,

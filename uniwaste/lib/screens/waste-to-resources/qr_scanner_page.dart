@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uniwaste/services/activity_service.dart';
 
 class QrScanScreen extends StatefulWidget {
   const QrScanScreen({super.key});
@@ -16,6 +19,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
   );
 
   bool _isScanned = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -36,26 +40,94 @@ class _QrScanScreenState extends State<QrScanScreen> {
     }
   }
 
-  // Logic to process the code
-  void _processQrCode(String code) {
+  Future<void> _processQrCode(String code) async {
+    if (_isLoading) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
     setState(() {
       _isScanned = true;
+      _isLoading = true;
     });
 
+    bool isPointCode = false;
+    String resultMessage = '';
+
+    // 2. CHECK DATABASE FOR POINTS
+    try {
+      final db = FirebaseFirestore.instance;
+      // Check if this QR code exists in 'qr_codes' collection in Firestore Database
+      final docSnapshot = await db.collection('qr_codes').doc(code).get();
+
+      if (docSnapshot.exists) {
+        // It is a valid point code
+        final data = docSnapshot.data();
+        final int pointsToAdd = data?['points'] ?? 0;
+        // Fetch location (default to 'Unknown' if not set in DB)
+        final String location = data?['location'] ?? 'Waste Bin';
+
+        if (pointsToAdd > 0) {
+          await ActivityService().recordQrScan(
+            userId: user.uid,
+            locationName: location,
+            points: pointsToAdd,
+          );
+
+          isPointCode = true;
+          resultMessage = "Success! You collected $pointsToAdd points.";
+        }
+      }
+    } catch (e) {
+      // If error (e.g., code not found), we assume it's a normal URL/Text QR
+      debugPrint("QR Lookup Error: $e");
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // 3. SHOW RESULT
+    if (isPointCode) {
+      // It was a valid point code
+      _showCustomDialog(
+        title: "Points Collected! 🌱",
+        content: resultMessage,
+        isUrl: false,
+        code: code,
+      );
+    } else {
+      // Not a point code -> Show standard content (URL or Text)
+      bool isUrl = code.startsWith('http') || code.startsWith('www');
+      _showCustomDialog(
+        title: isUrl ? "Website Found" : "QR Code Text",
+        content: code,
+        isUrl: isUrl,
+        code: code,
+      );
+    }
+  }
+
+  void _showCustomDialog({
+    required String title,
+    required String content,
+    required bool isUrl,
+    required String code,
+  }) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
-        // Check if it looks like a URL
-        bool isUrl = code.startsWith('http') || code.startsWith('www');
-
         return AlertDialog(
-          title: Text(isUrl ? "Website Found" : "QR Code Text"),
+          title: Text(title),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(code, style: const TextStyle(fontSize: 16)),
+              Text(content, style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 10),
               if (isUrl)
                 const Text(
@@ -65,7 +137,6 @@ class _QrScanScreenState extends State<QrScanScreen> {
             ],
           ),
           actions: [
-            // Scan Again Button
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
@@ -78,8 +149,6 @@ class _QrScanScreenState extends State<QrScanScreen> {
                 style: TextStyle(color: Colors.grey),
               ),
             ),
-
-            // Open Link Button
             if (isUrl)
               FilledButton(
                 onPressed: () {
@@ -123,7 +192,6 @@ class _QrScanScreenState extends State<QrScanScreen> {
       ),
       body: Stack(
         children: [
-          // Camera Feed
           MobileScanner(
             controller: controller,
             scanWindow: scanWindow,
@@ -133,35 +201,24 @@ class _QrScanScreenState extends State<QrScanScreen> {
               final List<Barcode> barcodes = capture.barcodes;
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                 final String code = barcodes.first.rawValue!;
-                setState(() {
-                  _isScanned = true;
-                });
                 _processQrCode(code);
               }
             },
           ),
-
-          // The Dark Mask & Scanner Box
           Container(
             decoration: ShapeDecoration(
               shape: QrScannerOverlayShape(
                 overlayColor: Colors.black.withValues(alpha: 0.5),
-                cutOutSize: scanBoxSize, // Ensure this matches the text spacing
+                cutOutSize: scanBoxSize,
               ),
             ),
           ),
-
-          // The Text
           const Center(
             child: Column(
-              mainAxisSize: MainAxisSize.min, // Shrink column to fit content
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Invisible box representing the Scanner Area
                 SizedBox(height: scanBoxSize, width: scanBoxSize),
-
-                // Small gap
                 SizedBox(height: 100),
-
                 Text(
                   "Align QR code within the frame",
                   style: TextStyle(
@@ -173,6 +230,13 @@ class _QrScanScreenState extends State<QrScanScreen> {
               ],
             ),
           ),
+          if (_isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
         ],
       ),
     );
@@ -270,7 +334,6 @@ class QrScannerOverlayShape extends ShapeBorder {
       Radius.circular(mBorderRadius),
     );
 
-    // Draw corners
     canvas.drawPath(
       Path()
         ..moveTo(borderRect.left, borderRect.top + mBorderLength)
