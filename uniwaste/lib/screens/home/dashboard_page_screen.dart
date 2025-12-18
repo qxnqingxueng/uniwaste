@@ -22,8 +22,8 @@ class _DashboardPageState extends State<DashboardPage> {
 
   final List<String> _posterImages = [
     "assets/images/P2P.png",
-    "assets/images/P2P.png",
-    "assets/images/P2P.png",
+    "assets/images/get_points_ways.png",
+    "assets/images/recycle_foodwaste_step.png",
   ];
 
   @override
@@ -87,7 +87,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 itemBuilder: (context, index) {
                   return Image.asset(
                     _posterImages[index],
-                    fit: BoxFit.cover,
+                    fit: BoxFit.fill,
                     errorBuilder:
                         (ctx, err, stack) => Container(
                           color: Colors.grey.shade300,
