@@ -10,7 +10,6 @@ import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/profile/voucher_screen.dart';
 import 'package:uniwaste/screens/profile/activity_screen.dart';
 import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
-// ✅ Import the Dashboard
 import 'package:uniwaste/screens/merchant/dashboard/merchant_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -33,6 +32,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _address = '';
   int _points = 0;
   String _role = 'student'; // Default role
+  
+  // ✅ NEW FIELD: Reputation Score
+  double _reputationScore = 100.0;
 
   // we store the avatar as bytes in memory
   Uint8List? _photoBytes;
@@ -85,6 +87,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else {
           _points = 0;
         }
+
+        // ✅ READ REPUTATION
+        final scoreData = data['reputationScore'];
+        if (scoreData is num) {
+          _reputationScore = scoreData.toDouble();
+        } else {
+          _reputationScore = 100.0; // Default if missing
+        }
+
       } else {
         // Create default doc if missing
         await docRef.set({
@@ -94,6 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'address': '',
           'photoBase64': '',
           'points': 0,
+          'reputationScore': 100.0, // Default
           'role': 'student',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -408,8 +420,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  // ✅ UPDATED BANNER: SHOW REPUTATION
   Widget _buildImpactBanner(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    
+    // Color logic for score
+    Color scoreColor = Colors.white;
+    if (_reputationScore < 50) scoreColor = Colors.redAccent;
+    else if (_reputationScore < 80) scoreColor = Colors.amberAccent;
+
     return SizedBox(
       width: width * 0.88,
       child: Container(
@@ -449,6 +468,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const Text(
               '“Every meal saved is one less in the bin.”',
               style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
+            
+            // ✅ REPUTATION SECTION
+            const SizedBox(height: 16),
+            Divider(color: Colors.white.withOpacity(0.3), thickness: 1),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  "Reputation: ",
+                  style: TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                Text(
+                  _reputationScore.toStringAsFixed(1),
+                  style: TextStyle(
+                    color: scoreColor, 
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 16
+                  ),
+                ),
+                const Text(
+                  " / 100",
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
             ),
           ],
         ),

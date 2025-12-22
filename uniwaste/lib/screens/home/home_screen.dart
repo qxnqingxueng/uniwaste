@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
-import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
 import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
 import 'package:uniwaste/screens/social/feed_screen.dart';
+import 'package:uniwaste/screens/shop/shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,10 +13,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Controller to handle page switching programmatically (From Main Branch)
   final PageController _pageController = PageController();
-
-  /// Tracks the currently active tab
   int _currentIndex = 0;
 
   @override
@@ -30,7 +26,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentIndex = index;
     });
-    // Smoothly animate to the selected page (Teammate's feature)
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -44,18 +39,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Helper to build a custom navigation button (From Main Branch logic)
   Widget _buildNavBtn(int index, IconData icon, String label) {
     final bool isSelected = _currentIndex == index;
-
-    // Standardized colors from Main Branch
-    final Color activeColor = const Color.fromRGBO(
-      119,
-      136,
-      115,
-      1.0,
-    ); // #778873
-    final Color inactiveColor = const Color.fromRGBO(208, 209, 208, 1);
 
     return MaterialButton(
       minWidth: 40,
@@ -66,12 +51,22 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: isSelected ? activeColor : inactiveColor, size: 28),
+          Icon(
+            icon,
+            color:
+                isSelected
+                    ? const Color.fromRGBO(119, 136, 115, 1.0)
+                    : const Color.fromRGBO(208, 209, 208, 1),
+            size: 28,
+          ),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
-              color: isSelected ? activeColor : inactiveColor,
+              color:
+                  isSelected
+                      ? const Color.fromRGBO(119, 136, 115, 1.0)
+                      : const Color.fromRGBO(208, 209, 208, 1),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -83,31 +78,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true, // Allows the body to flow behind the FAB notch
-      // 2. MAIN BODY (The Canvas)
-      // Uses PageView (from Main Branch) to allow animations, but loads YOUR screens
+      extendBody: true,
+
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
-        physics:
-            const NeverScrollableScrollPhysics(), // Disables swipe to prevent accidental tab switching
+        physics: const NeverScrollableScrollPhysics(),
         children: const [
-          // Index 0: Dashboard
           DashboardPage(),
-
-          // Index 1: Cart (Your Feature)
-          CartScreen(),
-
-          // Index 2: Social/Feed (Your Feature)
+          ShopPage(),
           FeedScreen(),
-
-          // Index 3: Profile
           ProfileScreen(),
         ],
       ),
 
-      // 3. BOTTOM NAVIGATION (Frame Bottom)
-      // Kept Main Branch's design because it includes the QR Scanner FAB
+      // BOTTOM NAVIGATION
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -120,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         child: BottomAppBar(
-          shape: const CircularNotchedRectangle(), // The cutout for the FAB
+          shape: const CircularNotchedRectangle(),
           notchMargin: 10.0,
           padding: const EdgeInsets.symmetric(horizontal: 10),
           height: 60,
@@ -137,16 +122,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Padding(padding: EdgeInsets.only(left: 5)),
                   _buildNavBtn(0, Icons.home, "Home"),
                   const SizedBox(width: 25),
-                  // Linked to Index 1 (Your Cart)
-                  _buildNavBtn(1, Icons.shopping_cart, "Cart"),
+                  _buildNavBtn(1, Icons.store, "Shop"),
                 ],
               ),
-
               // --- RIGHT SIDE ---
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Linked to Index 2 (Your Social)
                   _buildNavBtn(2, Icons.group_outlined, "Social"),
                   const SizedBox(width: 25),
                   _buildNavBtn(3, Icons.person, "Profile"),
@@ -157,8 +139,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-
-      // The QR Scanner Button (Main Branch Feature)
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Container(
         margin: const EdgeInsets.only(top: 10),

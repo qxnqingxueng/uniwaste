@@ -867,66 +867,91 @@ class _FriendListScreenState extends State<FriendListScreen> {
     );
   }
 
-  Widget _buildFriendRow(_Friend friend) {
+Widget _buildFriendRow(_Friend friend) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
+      // Clip ensures the green bar respects the rounded corners
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 70,
-            decoration: BoxDecoration(
-              color: _accent.withOpacity(0.6),
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(18),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 1. Green Accent Bar
+            Container(
+              width: 4,
+              decoration: BoxDecoration(
+                color: _accent.withOpacity(0.6),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Row(
-              children: [
-                _buildAvatar(friend, radius: 27),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 200,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        friend.name,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
+            
+            const SizedBox(width: 8),
+
+            // 2. MAIN CONTENT (Wrapped in Expanded)
+            // This forces the row to fill available space but NOT overflow
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    // Avatar (Fixed size)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: _buildAvatar(friend, radius: 27),
+                    ),
+                    
+                    const SizedBox(width: 12),
+                    
+                    // Text Column (Wrapped in Expanded)
+                    // This creates the constraint so text truncates instead of overflowing
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            friend.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis, // Adds "..." if too long
+                            style: const TextStyle(
+                              fontSize: 16, // Reduced slightly to fit better
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            friend.email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis, // Adds "..." if too long
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        friend.email,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-          const Spacer(),
-          IconButton(
-            icon: const Icon(Icons.more_horiz, size: 22),
-            onPressed: () => _showFriendOptions(friend),
-          ),
-        ],
+
+            // 3. Menu Button (Fixed size)
+            // We removed Spacer() because the Expanded above handles the spacing
+            IconButton(
+              icon: const Icon(Icons.more_horiz, size: 22),
+              onPressed: () => _showFriendOptions(friend),
+              padding: EdgeInsets.zero, // Reduces extra padding causing width issues
+              constraints: const BoxConstraints(), // Minimizes button footprint
+            ),
+            
+            // Right margin for the button
+            const SizedBox(width: 12),
+          ],
+        ),
       ),
     );
   }
