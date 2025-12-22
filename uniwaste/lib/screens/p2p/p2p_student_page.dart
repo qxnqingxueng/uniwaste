@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
 import 'package:uniwaste/services/activity_share_helper.dart';
 import 'package:uniwaste/screens/p2p/product_detail_screen.dart';
+import 'package:uniwaste/widgets/animated_check.dart';
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});
@@ -33,6 +35,54 @@ class _P2PStudentPageState extends State<P2PStudentPage> with SingleTickerProvid
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  // --- PRE-LOAD LOGIC ---
+  Future<Map<String, MemoryImage?>> _preloadDonorImages(
+    BuildContext context, 
+    List<QueryDocumentSnapshot> listings
+  ) async {
+    final Set<String> donorIds = {};
+    final Map<String, MemoryImage?> imageMap = {};
+
+    // 1. Collect unique Donor IDs
+    for (var doc in listings) {
+      final data = doc.data() as Map<String, dynamic>;
+      final String? did = data['donor_id'];
+      if (did != null && did.isNotEmpty) {
+        donorIds.add(did);
+      }
+    }
+
+    // 2. Fetch all donor profiles in parallel
+    await Future.wait(donorIds.map((id) async {
+      try {
+        final doc = await _db.collection('users').doc(id).get();
+        if (doc.exists) {
+          final userData = doc.data();
+          final String? base64Str = userData?['photoBase64'];
+
+          if (base64Str != null && base64Str.isNotEmpty) {
+            try {
+              final Uint8List bytes = base64Decode(base64Str);
+              final provider = MemoryImage(bytes);
+              
+              // 3. Precache the image so it renders instantly
+              if (context.mounted) {
+                await precacheImage(provider, context);
+              }
+              imageMap[id] = provider;
+            } catch (e) {
+              debugPrint("Error decoding image for $id: $e");
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching donor $id: $e");
+      }
+    }));
+
+    return imageMap;
   }
 
   // --- CLAIM LOGIC ---
@@ -78,9 +128,30 @@ class _P2PStudentPageState extends State<P2PStudentPage> with SingleTickerProvid
         Navigator.pop(context); // Close Loader
         Navigator.pop(context); // Close Detail Screen
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Item claimed! Check "My Claims" tab.')),
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80), 
+                const SizedBox(height: 20),
+                const Text("Claim Successful!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 8),
+                const Text('Check your "My Claims" tab.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+              )
+            ],
+          ),
         );
+
         _tabController.animateTo(1); // Auto-switch to "My Claims"
       }
     } catch (e) {
@@ -93,6 +164,27 @@ class _P2PStudentPageState extends State<P2PStudentPage> with SingleTickerProvid
 
   // --- SHARE LOGIC ---
   Future<void> _shareItem(Map<String, dynamic> data, String docId, String userId, String userName) async {
+      final bool confirm = await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text("Share to Feed?"),
+          content: const Text("Do you want to share this activity so others can see your impact?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text("Not now", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text("Share", style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF6B8E23))),
+            ),
+          ],
+        ),
+      ) ?? false;
+
+      if (!confirm) return;
+
       await ActivityShareHelper.shareToFeedDirectly(
         userId: userId,
         userDisplayName: userName,
@@ -102,7 +194,32 @@ class _P2PStudentPageState extends State<P2PStudentPage> with SingleTickerProvid
         type: 'p2p_free',
         extra: {},
       );
-      if(mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Shared!')));
+      
+      if(mounted) {
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80),
+                const SizedBox(height: 20),
+                const Text("Shared to Feed!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 8),
+                const Text('Your community can now see your impact.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+              )
+            ],
+          ),
+        );
+      }
   }
 
   // --- CHAT LOGIC ---
@@ -142,7 +259,6 @@ class _P2PStudentPageState extends State<P2PStudentPage> with SingleTickerProvid
             MaterialPageRoute(builder: (context) => const CreateListingScreen()),
           );
         },
-        // 🔥 CHANGED THIS LINE TO MATCH YOUR THEME GREEN
         backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0), 
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -156,7 +272,7 @@ class _P2PStudentPageState extends State<P2PStudentPage> with SingleTickerProvid
     );
   }
 
-Widget _buildAvailableGrid() {
+  Widget _buildAvailableGrid() {
     final currentUser = context.select((AuthenticationBloc bloc) => bloc.state.user);
 
     return StreamBuilder<QuerySnapshot>(
@@ -171,47 +287,62 @@ Widget _buildAvailableGrid() {
 
         final allDocs = snapshot.data?.docs ?? [];
 
-        // 1. Filter out expired items BEFORE building the grid
         final validDocs = allDocs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final Timestamp? expiryTs = data['expiry_date'] as Timestamp?;
-          
-          // Return false if expired (removes it from the list entirely)
           if (expiryTs != null && expiryTs.toDate().isBefore(DateTime.now())) {
             return false;
           }
           return true;
         }).toList();
         
-        // 2. Check if the filtered list is empty
         if (validDocs.isEmpty) {
           return const Center(child: Text("No items available"));
         }
 
-        return GridView.builder(
-          padding: const EdgeInsets.all(12),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.70,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          // 3. Use the length of the filtered list
-          itemCount: validDocs.length, 
-          itemBuilder: (context, index) {
-            // 4. Use the filtered list to get data
-            final doc = validDocs[index];
-            final data = doc.data() as Map<String, dynamic>;
-            final docId = doc.id;
+        // --- NEW: Wait for ALL images to load before showing grid ---
+        return FutureBuilder<Map<String, MemoryImage?>>(
+          future: _preloadDonorImages(context, validDocs),
+          builder: (context, imageSnapshot) {
+            
+            // SHOW LOADER UNTIL IMAGES ARE READY
+            if (imageSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            return _buildGridCard(data, docId, currentUser);
+            final imageMap = imageSnapshot.data ?? {};
+
+            return GridView.builder(
+              padding: const EdgeInsets.all(12),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.70,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: validDocs.length, 
+              itemBuilder: (context, index) {
+                final doc = validDocs[index];
+                final data = doc.data() as Map<String, dynamic>;
+                final docId = doc.id;
+                final donorId = data['donor_id'] ?? '';
+
+                // Pass the pre-loaded image
+                return _buildGridCard(data, docId, currentUser, imageMap[donorId]);
+              },
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildGridCard(Map<String, dynamic> data, String docId, MyUser? currentUser) {
+Widget _buildGridCard(
+    Map<String, dynamic> data, 
+    String docId, 
+    MyUser? currentUser,
+    MemoryImage? preloadedImage, // This image is already loaded in memory
+  ) {
     Uint8List? imageBytes;
     if (data['image_blob'] != null && data['image_blob'] is Blob) {
       imageBytes = (data['image_blob'] as Blob).bytes;
@@ -220,6 +351,8 @@ Widget _buildAvailableGrid() {
     final bool isFree = data['is_free'] ?? true;
     final double price = (data['price'] ?? 0).toDouble();
     final String donorName = data['donor_name'] ?? 'User';
+    
+    final Color chatAvatarColor = const Color.fromRGBO(210, 220, 182, 1);
 
     return GestureDetector(
       onTap: () {
@@ -231,6 +364,8 @@ Widget _buildAvailableGrid() {
               docId: docId,
               currentUser: currentUser,
               onClaim: _performClaim,
+              // ✅ PASS THE IMAGE HERE
+              preloadedDonorImage: preloadedImage,
             ),
           ),
         );
@@ -283,8 +418,14 @@ Widget _buildAvailableGrid() {
                     children: [
                       CircleAvatar(
                         radius: 8,
-                        backgroundColor: Colors.grey.shade300,
-                        child: Text(donorName[0].toUpperCase(), style: const TextStyle(fontSize: 8)),
+                        backgroundColor: chatAvatarColor,
+                        backgroundImage: preloadedImage,
+                        child: preloadedImage == null
+                          ? Text(
+                              donorName.isNotEmpty ? donorName[0].toUpperCase() : '?',
+                              style: const TextStyle(fontSize: 8, color: Colors.black87),
+                            )
+                          : null,
                       ),
                       const SizedBox(width: 4),
                       Expanded(

@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:uniwaste/services/activity_service.dart';
+// Import the new widget
+import 'package:uniwaste/widgets/animated_check.dart';
 
 class ActivityShareHelper {
   ActivityShareHelper._();
@@ -81,8 +83,29 @@ class ActivityShareHelper {
       );
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Shared to Feed ✅')),
+        // --- UPDATED: Pop out card with Animation ---
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80), // The new animation
+                const SizedBox(height: 20),
+                const Text("Shared!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                const SizedBox(height: 8),
+                const Text('Successfully shared to the community feed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+              )
+            ],
+          ),
         );
       }
     }
