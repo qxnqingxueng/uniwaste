@@ -3,7 +3,7 @@ import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
 import 'package:uniwaste/screens/social/feed_screen.dart';
-import 'package:uniwaste/screens/shop/shop_screen.dart'; 
+import 'package:uniwaste/screens/shop/shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -53,18 +53,20 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Icon(
             icon,
-            color: isSelected
-                ? const Color.fromRGBO(119, 136, 115, 1.0)
-                : const Color.fromRGBO(208, 209, 208, 1),
+            color:
+                isSelected
+                    ? const Color.fromRGBO(119, 136, 115, 1.0)
+                    : const Color.fromRGBO(208, 209, 208, 1),
             size: 28,
           ),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
-              color: isSelected
-                  ? const Color.fromRGBO(119, 136, 115, 1.0)
-                  : const Color.fromRGBO(208, 209, 208, 1),
+              color:
+                  isSelected
+                      ? const Color.fromRGBO(119, 136, 115, 1.0)
+                      : const Color.fromRGBO(208, 209, 208, 1),
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -84,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
         physics: const NeverScrollableScrollPhysics(),
         children: const [
           DashboardPage(),
-          ShopPage(), 
+          ShopPage(),
           FeedScreen(),
           ProfileScreen(),
         ],
@@ -120,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const Padding(padding: EdgeInsets.only(left: 5)),
                   _buildNavBtn(0, Icons.home, "Home"),
                   const SizedBox(width: 25),
-                  _buildNavBtn(1, Icons.store, "Shop"), 
+                  _buildNavBtn(1, Icons.store, "Shop"),
                 ],
               ),
               // --- RIGHT SIDE ---

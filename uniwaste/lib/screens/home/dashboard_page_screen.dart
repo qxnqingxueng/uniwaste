@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:ui'; 
+import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; 
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
@@ -59,14 +59,14 @@ class _DashboardPageState extends State<DashboardPage> {
     final String userId = user?.userId ?? '';
 
     return Scaffold(
-      extendBodyBehindAppBar: true, 
+      extendBodyBehindAppBar: true,
 
       appBar: AppBar(
         title: const Text(
-          "UniWaste", 
+          "UniWaste",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.transparent, 
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
@@ -74,9 +74,7 @@ class _DashboardPageState extends State<DashboardPage> {
         flexibleSpace: ClipRRect(
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              color: Colors.transparent,
-            ),
+            child: Container(color: Colors.transparent),
           ),
         ),
         actions: [
@@ -102,9 +100,9 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
         child: SafeArea(
-          top: false, 
+          top: false,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(20, 120, 20, 20), 
+            padding: const EdgeInsets.fromLTRB(20, 120, 20, 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -124,13 +122,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 const SizedBox(height: 24),
                 // --- MEAL POINTS CARD ---
                 StreamBuilder<DocumentSnapshot>(
-                  stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userId)
+                          .snapshots(),
                   builder: (context, snapshot) {
                     // Default to 0 if loading or error
                     int points = 0;
-                    
+
                     if (snapshot.hasData && snapshot.data!.exists) {
-                      final data = snapshot.data!.data() as Map<String, dynamic>;
+                      final data =
+                          snapshot.data!.data() as Map<String, dynamic>;
                       // Safely parse points
                       points = (data['points'] ?? 0).toInt();
                     }
@@ -173,7 +176,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                   const SizedBox(height: 4),
                                   //DYNAMIC POINTS TEXT
                                   Text(
-                                    "$points", 
+                                    "$points",
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 32,
@@ -214,7 +217,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
                                 elevation: 0,
                               ),
                               child: const Text(
@@ -226,7 +231,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     );
-                  }
+                  },
                 ),
 
                 const SizedBox(height: 30),
@@ -259,11 +264,12 @@ class _DashboardPageState extends State<DashboardPage> {
                           child: Image.asset(
                             _posterImages[index],
                             fit: BoxFit.cover,
-                            errorBuilder: (ctx, err, stack) => const Icon(
-                              Icons.broken_image,
-                              size: 50,
-                              color: Colors.grey,
-                            ),
+                            errorBuilder:
+                                (ctx, err, stack) => const Icon(
+                                  Icons.broken_image,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
                           ),
                         );
                       },
@@ -281,9 +287,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       height: 8,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(4),
-                        color: _currentPoster == index
-                            ? const Color(0xFF6B8E23)
-                            : Colors.grey.shade300,
+                        color:
+                            _currentPoster == index
+                                ? const Color(0xFF6B8E23)
+                                : Colors.grey.shade300,
                       ),
                     );
                   }),
@@ -400,7 +407,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 100),
               ],
             ),

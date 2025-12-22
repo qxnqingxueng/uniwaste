@@ -53,7 +53,6 @@ class _ShopPageState extends State<ShopPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
                 // 1. PROMO BANNER
                 Container(
                   width: double.infinity,
@@ -121,7 +120,7 @@ class _ShopPageState extends State<ShopPage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Student Exchange Card
                 _buildMarketCard(
                   context,
@@ -130,13 +129,16 @@ class _ShopPageState extends State<ShopPage> {
                   icon: Icons.people_outline,
                   color: const Color(0xFFFFF3E0), // Light Orange
                   iconColor: Colors.orange,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const P2PStudentPage()),
-                  ),
+                  onTap:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const P2PStudentPage(),
+                        ),
+                      ),
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Merchant Deals Card
                 _buildMarketCard(
                   context,
@@ -145,10 +147,13 @@ class _ShopPageState extends State<ShopPage> {
                   icon: Icons.storefront,
                   color: const Color(0xFFE8F5E9), // Light Green
                   iconColor: Colors.green,
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MarketplaceHomeScreen()),
-                  ),
+                  onTap:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MarketplaceHomeScreen(),
+                        ),
+                      ),
                 ),
 
                 const SizedBox(height: 30),
@@ -159,14 +164,19 @@ class _ShopPageState extends State<ShopPage> {
                   children: [
                     const Text(
                       "Fresh Arrivals",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     TextButton(
                       onPressed: () {
                         // Navigate to full list (P2P page)
-                         Navigator.push(
+                        Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const P2PStudentPage()),
+                          MaterialPageRoute(
+                            builder: (context) => const P2PStudentPage(),
+                          ),
                         );
                       },
                       child: const Text("See All"),
@@ -177,23 +187,28 @@ class _ShopPageState extends State<ShopPage> {
                 SizedBox(
                   height: 190,
                   child: StreamBuilder<QuerySnapshot>(
-                    stream: _db.collection('food_listings')
-                        .where('status', isEqualTo: 'available')
-                        .orderBy('created_at', descending: true)
-                        .limit(5)
-                        .snapshots(),
+                    stream:
+                        _db
+                            .collection('food_listings')
+                            .where('status', isEqualTo: 'available')
+                            .orderBy('created_at', descending: true)
+                            .limit(5)
+                            .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                         return Container(
-                           alignment: Alignment.center,
-                           width: double.infinity,
-                           padding: const EdgeInsets.all(16),
-                           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                           child: const Text("No active listings yet."),
-                         );
+                        return Container(
+                          alignment: Alignment.center,
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Text("No active listings yet."),
+                        );
                       }
 
                       final docs = snapshot.data!.docs;
@@ -203,14 +218,15 @@ class _ShopPageState extends State<ShopPage> {
                         clipBehavior: Clip.none,
                         itemCount: docs.length,
                         itemBuilder: (context, index) {
-                          final data = docs[index].data() as Map<String, dynamic>;
+                          final data =
+                              docs[index].data() as Map<String, dynamic>;
                           return _buildRealItemCard(data);
                         },
                       );
                     },
                   ),
                 ),
-                
+
                 const SizedBox(height: 80), // Bottom padding
               ],
             ),
@@ -285,7 +301,6 @@ class _ShopPageState extends State<ShopPage> {
     );
   }
 
-
   Widget _buildRealItemCard(Map<String, dynamic> data) {
     // 1. Decode Image Blob
     Uint8List? imageBytes;
@@ -297,7 +312,7 @@ class _ShopPageState extends State<ShopPage> {
     final bool isFree = data['is_free'] ?? true;
     final double price = (data['price'] ?? 0).toDouble();
     final String priceText = isFree ? "Free" : "RM ${price.toStringAsFixed(2)}";
-    
+
     // 3. Parse Title
     final String title = data['description'] ?? "Food Item";
 
@@ -335,13 +350,20 @@ class _ShopPageState extends State<ShopPage> {
           // IMAGE SECTION
           Expanded(
             child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Container(
                 width: double.infinity,
                 color: Colors.grey.shade100,
-                child: imageBytes != null
-                    ? Image.memory(imageBytes, fit: BoxFit.cover)
-                    : const Icon(Icons.fastfood, color: Colors.grey, size: 40),
+                child:
+                    imageBytes != null
+                        ? Image.memory(imageBytes, fit: BoxFit.cover)
+                        : const Icon(
+                          Icons.fastfood,
+                          color: Colors.grey,
+                          size: 40,
+                        ),
               ),
             ),
           ),
@@ -353,7 +375,10 @@ class _ShopPageState extends State<ShopPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

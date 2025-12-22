@@ -47,16 +47,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     if (uid == null) return;
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
       if (doc.exists) {
         final data = doc.data()!;
         final int reports = (data['reportCount'] ?? 0) as int;
-        
+
         // Handle potentially different number types from Firestore
-        final double score = (data['reputationScore'] is int) 
-            ? (data['reputationScore'] as int).toDouble() 
-            : (data['reputationScore'] as double? ?? 100.0);
+        final double score =
+            (data['reputationScore'] is int)
+                ? (data['reputationScore'] as int).toDouble()
+                : (data['reputationScore'] as double? ?? 100.0);
 
         // 🚨 Rule: 3+ Reports OR Score < 50
         if (reports >= 3 || score < 50.0) {
@@ -76,26 +78,34 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     if (uid == null) return;
 
     // Confirm with user
-    final bool confirm = await showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Reset Account Status"),
-        content: const Text(
-          "Since there is no admin, this will immediately reset your Reputation Score to 100 and clear your Report Count.\n\nDo you want to proceed?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6B8E23)),
-            child: const Text("Reset & Unblock", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    ) ?? false;
+    final bool confirm =
+        await showDialog(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                title: const Text("Reset Account Status"),
+                content: const Text(
+                  "Since there is no admin, this will immediately reset your Reputation Score to 100 and clear your Report Count.\n\nDo you want to proceed?",
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text("Cancel"),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6B8E23),
+                    ),
+                    child: const Text(
+                      "Reset & Unblock",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+        ) ??
+        false;
 
     if (!confirm) return;
 
@@ -111,9 +121,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account status reset! You can now post listings.")),
+          const SnackBar(
+            content: Text("Account status reset! You can now post listings."),
+          ),
         );
-        
+
         // ✅ UNBLOCK UI IMMEDIATELY
         setState(() {
           _isRestricted = false;
@@ -124,7 +136,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       debugPrint("Error resetting account: $e");
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -241,7 +255,9 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -258,18 +274,29 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
     // 2. 🚨 RESTRICTED UI (With Reset Button) 🚨
     if (_isRestricted) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Access Restricted"), automaticallyImplyLeading: false),
+        appBar: AppBar(
+          title: const Text("Access Restricted"),
+          automaticallyImplyLeading: false,
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.gpp_bad_outlined, size: 80, color: Colors.redAccent),
+                const Icon(
+                  Icons.gpp_bad_outlined,
+                  size: 80,
+                  color: Colors.redAccent,
+                ),
                 const SizedBox(height: 24),
                 const Text(
                   "Posting Restricted",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -278,25 +305,31 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   style: TextStyle(fontSize: 16, color: Colors.black54),
                 ),
                 const SizedBox(height: 32),
-                
+
                 // ✅ RESET BUTTON
-                _isLoading 
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton.icon(
+                _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton.icon(
                       onPressed: _submitAppeal,
                       icon: const Icon(Icons.refresh),
                       label: const Text("Reset Account Status"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF6B8E23),
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                       ),
                     ),
-                
+
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("Go Back", style: TextStyle(color: Colors.grey)),
+                  child: const Text(
+                    "Go Back",
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
               ],
             ),
@@ -322,33 +355,56 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
-                    image: _imageBytes != null
-                        ? DecorationImage(image: MemoryImage(_imageBytes!), fit: BoxFit.cover)
-                        : null,
+                    image:
+                        _imageBytes != null
+                            ? DecorationImage(
+                              image: MemoryImage(_imageBytes!),
+                              fit: BoxFit.cover,
+                            )
+                            : null,
                   ),
-                  child: _imageBytes == null
-                      ? const Column(
+                  child:
+                      _imageBytes == null
+                          ? const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: [Icon(Icons.camera_alt, size: 40, color: Colors.grey), Text("Tap to upload food photo")],
+                            children: [
+                              Icon(
+                                Icons.camera_alt,
+                                size: 40,
+                                color: Colors.grey,
+                              ),
+                              Text("Tap to upload food photo"),
+                            ],
                           )
-                      : null,
+                          : null,
                 ),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
-                decoration: const InputDecoration(labelText: "Description", border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(),
+                ),
                 validator: (val) => val!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
                 initialValue: _foodType,
-                decoration: const InputDecoration(labelText: "Food Type", border: OutlineInputBorder()),
+                decoration: const InputDecoration(
+                  labelText: "Food Type",
+                  border: OutlineInputBorder(),
+                ),
                 items: const [
                   DropdownMenuItem(value: 'cooked', child: Text("Cooked Meal")),
-                  DropdownMenuItem(value: 'packaged', child: Text("Packaged Goods")),
+                  DropdownMenuItem(
+                    value: 'packaged',
+                    child: Text("Packaged Goods"),
+                  ),
                 ],
-                onChanged: (val) { if (val != null) _updateExpiryLogic(val); },
+                onChanged: (val) {
+                  if (val != null) _updateExpiryLogic(val);
+                },
               ),
               const SizedBox(height: 16),
               if (_foodType == 'cooked')
@@ -356,12 +412,18 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   color: Color.fromRGBO(210, 220, 182, 0.5),
                   child: Padding(
                     padding: EdgeInsets.all(12.0),
-                    child: Text("Cooked meals expire automatically in 12 hours."),
+                    child: Text(
+                      "Cooked meals expire automatically in 12 hours.",
+                    ),
                   ),
                 )
               else ...[
                 ListTile(
-                  title: Text(_expiryDate == null ? "Select Expiry Date" : "Expires: ${_expiryDate.toString().split(' ')[0]}"),
+                  title: Text(
+                    _expiryDate == null
+                        ? "Select Expiry Date"
+                        : "Expires: ${_expiryDate.toString().split(' ')[0]}",
+                  ),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: _selectExpiryDate,
                 ),
@@ -371,16 +433,20 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   child: Container(
                     height: 100,
                     color: Colors.grey.shade200,
-                    child: _proofImageBytes != null
-                        ? Image.memory(_proofImageBytes!, fit: BoxFit.cover)
-                        : const Center(child: Text("Tap to upload proof")),
+                    child:
+                        _proofImageBytes != null
+                            ? Image.memory(_proofImageBytes!, fit: BoxFit.cover)
+                            : const Center(child: Text("Tap to upload proof")),
                   ),
                 ),
               ],
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Checkbox(value: _isFree, onChanged: (val) => setState(() => _isFree = val!)),
+                  Checkbox(
+                    value: _isFree,
+                    onChanged: (val) => setState(() => _isFree = val!),
+                  ),
                   const Text("List for Free"),
                 ],
               ),
@@ -388,8 +454,16 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                 TextFormField(
                   controller: _priceController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: "Price (RM)", prefixText: "RM ", border: OutlineInputBorder()),
-                  validator: (val) => (!_isFree && (val == null || val.isEmpty)) ? 'Enter price' : null,
+                  decoration: const InputDecoration(
+                    labelText: "Price (RM)",
+                    prefixText: "RM ",
+                    border: OutlineInputBorder(),
+                  ),
+                  validator:
+                      (val) =>
+                          (!_isFree && (val == null || val.isEmpty))
+                              ? 'Enter price'
+                              : null,
                 ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -399,7 +473,10 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : const Text("Post Listing"),
+                child:
+                    _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text("Post Listing"),
               ),
             ],
           ),

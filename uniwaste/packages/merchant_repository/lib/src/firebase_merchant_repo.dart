@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'entities/merchant_entity.dart';
 import 'merchant_repo.dart';
 import 'models/merchant.dart';
 
@@ -17,8 +16,10 @@ class FirebaseMerchantRepo implements MerchantRepository {
   Stream<List<Merchant>> getMerchants() {
     return _merchantCollection.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
+        // ✅ FIX 1: Pass data and ID directly to the model
         return Merchant.fromEntity(
-          MerchantEntity.fromDocument(doc.data() as Map<String, dynamic>),
+          doc.data() as Map<String, dynamic>,
+          doc.id,
         );
       }).toList();
     });
@@ -29,7 +30,8 @@ class FirebaseMerchantRepo implements MerchantRepository {
     try {
       await _merchantCollection
           .doc(merchant.id)
-          .set(merchant.toEntity().toDocument());
+          // ✅ FIX 2: Use toDocument() directly
+          .set(merchant.toDocument());
     } catch (e) {
       log(e.toString());
       rethrow;
