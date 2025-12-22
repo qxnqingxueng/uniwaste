@@ -17,19 +17,21 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
   final _phoneController = TextEditingController();
+  // ✅ NEW: Controller for Delivery Fee
+  final _deliveryFeeController = TextEditingController();
 
   // Image
   String? _currentBase64Image;
   final ImagePicker _picker = ImagePicker();
 
-  // ✅ CATEGORY LOGIC
+  // Category Logic
   final List<String> _allOptions = [
     'Halal',
     'Vegetarian',
     'No Pork',
     'Cheap Eats',
   ];
-  List<String> _selectedCategories = []; // Stores what the merchant picked
+  List<String> _selectedCategories = [];
 
   bool _isLoading = true;
 
@@ -56,11 +58,13 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
           _descController.text =
               data['description'] ?? data['shopAddress'] ?? '';
           _phoneController.text = data['phone'] ?? '';
+
+          // ✅ LOAD FEE (Default to 3.00 if missing)
+          double fee = (data['deliveryFee'] ?? 3.00).toDouble();
+          _deliveryFeeController.text = fee.toStringAsFixed(2);
+
           _currentBase64Image = data['imageUrl'];
-
-          // ✅ Load saved categories
           _selectedCategories = List<String>.from(data['categories'] ?? []);
-
           _isLoading = false;
         });
       } else {
@@ -97,6 +101,9 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     try {
+      // ✅ Parse Fee safely
+      double deliveryFee = double.tryParse(_deliveryFeeController.text) ?? 3.00;
+
       await FirebaseFirestore.instance
           .collection('merchants')
           .doc(user!.uid)
@@ -105,16 +112,14 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
             'description': _descController.text.trim(),
             'phone': _phoneController.text.trim(),
             'imageUrl': _currentBase64Image,
-
-            // ✅ Save Categories
             'categories': _selectedCategories,
-
+            'deliveryFee': deliveryFee, // ✅ SAVE FEE TO DB
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Details & Categories updated!")),
+          const SnackBar(content: Text("✅ Shop settings updated!")),
         );
         Navigator.pop(context);
       }
@@ -201,6 +206,28 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                         maxLines: 2,
                       ),
                       const SizedBox(height: 16),
+
+                      // ✅ NEW: Delivery Fee Input
+                      TextFormField(
+                        controller: _deliveryFeeController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: "Delivery Fee (RM)",
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.delivery_dining),
+                          helperText: "This fee applies to all delivery orders",
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return "Required";
+                          if (double.tryParse(v) == null)
+                            return "Invalid number";
+                          return null;
+                        },
+                      ),
+
+                      const SizedBox(height: 16),
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
@@ -220,13 +247,8 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        "Select all that apply to help students find you:",
-                        style: TextStyle(color: Colors.grey),
-                      ),
                       const SizedBox(height: 10),
 
-                      // ✅ CATEGORY SELECTION CHIPS
                       Wrap(
                         spacing: 8.0,
                         children:

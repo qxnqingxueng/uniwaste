@@ -3,9 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// Import CartBloc
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 import 'package:uniwaste/screens/marketplace/checkout/edit_address_screen.dart';
 import 'package:uniwaste/screens/marketplace/checkout/models/delivery_info.dart';
@@ -24,42 +22,81 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isProcessing = false;
   bool isDelivery = true;
 
+  // ✅ NEW: Variable to store the fetched fee
+  double _merchantDeliveryFee = 0.00;
+  bool _isLoadingFee = true;
+
   final Color bgCream = const Color(0xFFF1F3E0);
   final Color sageGreen = const Color(0xFFD2DCB6);
   final Color accentGreen = const Color(0xFFA1BC98);
   final Color darkGreen = const Color(0xFF778873);
 
+  @override
+  void initState() {
+    super.initState();
+    // ✅ SAFER: Wait for the widget to build before fetching data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchDeliveryFee();
+    });
+  }
+
+  Future<void> _fetchDeliveryFee() async {
+    // Check if widget is still active
+    if (!mounted) return;
+
+    try {
+      final state = context.read<CartBloc>().state;
+      if (state is CartLoaded && state.items.isNotEmpty) {
+        final merchantId = state.items.first.merchantId;
+
+        if (merchantId != null && merchantId.isNotEmpty) {
+          final doc =
+              await FirebaseFirestore.instance
+                  .collection('merchants')
+                  .doc(merchantId)
+                  .get();
+
+          if (doc.exists && mounted) {
+            setState(() {
+              _merchantDeliveryFee =
+                  (doc.data()?['deliveryFee'] ?? 3.00).toDouble();
+              _isLoadingFee = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) setState(() => _isLoadingFee = false);
+      }
+    } catch (e) {
+      print("Error fetching fee: $e");
+      if (mounted) setState(() => _isLoadingFee = false);
+    }
+  }
+
   Future<void> _handlePayment(List<CartItemModel> items, double amount) async {
     setState(() => _isProcessing = true);
 
-    // 1. Process Payment
     final success = await PaymentService.instance.makePayment(context, amount);
 
     if (success) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final orderId = DateTime.now().millisecondsSinceEpoch.toString();
-
-        // Extract Merchant ID safely
         final String merchantId =
             items.isNotEmpty ? (items.first.merchantId ?? '') : '';
 
         if (merchantId.isEmpty) {
-          print("❌ ERROR: Merchant ID is empty! Order will not sync.");
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Error: System cannot identify the merchant."),
-            ),
+            const SnackBar(content: Text("Error: Merchant not identified.")),
           );
           setState(() => _isProcessing = false);
           return;
         }
 
         try {
-          // 2. Update Inventory (Quantity & Availability)
+          // Update Inventory
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             for (var item in items) {
-              // Point to the specific merchant's item collection
               DocumentReference merchantItemRef = FirebaseFirestore.instance
                   .collection('merchants')
                   .doc(merchantId)
@@ -80,29 +117,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 int newQty = qtyInt - item.quantity;
                 if (newQty < 0) newQty = 0;
 
-                // ✅ FIX: Update both quantity AND availability
                 transaction.update(merchantItemRef, {
                   'quantity': newQty,
-                  'isAvailable':
-                      newQty >
-                      0, // If 0, it becomes false and disappears from UI
+                  'isAvailable': newQty > 0,
                 });
-
-                print(
-                  "✅ Updated Item: ${item.name} | Qty: $newQty | Available: ${newQty > 0}",
-                );
               }
             }
           });
 
-          // 3. Prepare Order Data
+          // Prepare Order Data
           final orderData = {
             'orderId': orderId,
             'userId': user.uid,
             'userName': user.displayName ?? "Student",
             'userEmail': user.email ?? "",
             'totalAmount': amount,
-            'status': 'pending', // Merchant sees this as new
+            'deliveryFee':
+                isDelivery ? _merchantDeliveryFee : 0.0, // Save fee used
+            'status': 'pending',
             'orderDate': FieldValue.serverTimestamp(),
             'merchantId': merchantId,
             'shippingAddress':
@@ -124,15 +156,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     .toList(),
           };
 
-          // 4. Double Write Strategy (Sync Fix)
-
-          // Write A: Global Orders (Student)
+          // Double Write Strategy
           await FirebaseFirestore.instance
               .collection('orders')
               .doc(orderId)
               .set(orderData);
-
-          // Write B: Merchant Orders (Merchant)
           await FirebaseFirestore.instance
               .collection('merchants')
               .doc(merchantId)
@@ -159,7 +187,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       }
     } else {
-      print("Payment flow failed or cancelled.");
+      print("Payment flow failed.");
     }
     if (mounted) setState(() => _isProcessing = false);
   }
@@ -188,7 +216,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             0.0,
             (sum, i) => sum + (i.price * i.quantity),
           );
-          final deliveryFee = isDelivery ? 3.00 : 0.00;
+
+          // ✅ USE DYNAMIC FEE
+          final deliveryFee = isDelivery ? _merchantDeliveryFee : 0.00;
           final total = subtotal + deliveryFee;
 
           return SingleChildScrollView(
@@ -325,12 +355,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                       _buildCostRow(
                         "Delivery Fee",
-                        isDelivery ? "RM 3.00" : "Free",
+                        isDelivery
+                            ? (_isLoadingFee
+                                ? "..."
+                                : "RM ${_merchantDeliveryFee.toStringAsFixed(2)}")
+                            : "Free",
                       ),
                       const Divider(),
                       _buildCostRow(
                         "Total Payment",
-                        "RM ${total.toStringAsFixed(2)}",
+                        _isLoadingFee
+                            ? "..."
+                            : "RM ${total.toStringAsFixed(2)}",
                         isBold: true,
                       ),
                     ],
@@ -343,7 +379,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   height: 50,
                   child: ElevatedButton(
                     onPressed:
-                        _isProcessing
+                        _isProcessing || _isLoadingFee
                             ? null
                             : () => _handlePayment(checkoutItems, total),
                     style: ElevatedButton.styleFrom(

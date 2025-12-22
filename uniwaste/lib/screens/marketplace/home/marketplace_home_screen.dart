@@ -403,9 +403,14 @@ class _FancyMerchantCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        const Text(
-                          "RM 3.00 Delivery", // Hardcoded until backend supports dynamic fee
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+
+                        // ✅ FIXED: Display Dynamic Delivery Fee
+                        Text(
+                          "RM ${merchant.deliveryFee.toStringAsFixed(2)} Delivery",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),

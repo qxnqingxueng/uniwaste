@@ -10,7 +10,6 @@ class OrderStatusScreen extends StatelessWidget {
   // Theme Colors
   final Color bgCream = const Color(0xFFF1F3E0);
   final Color darkGreen = const Color(0xFF778873);
-  final Color sageGreen = const Color(0xFFD2DCB6);
   final Color white = Colors.white;
 
   @override
@@ -41,8 +40,10 @@ class OrderStatusScreen extends StatelessWidget {
             return Center(child: CircularProgressIndicator(color: darkGreen));
           }
 
-          // ✅ FIXED LINE: Check snapshot.data!.exists
-          if (!snapshot.hasData || !snapshot.data!.exists) {
+          // ✅ FIXED: Check 'snapshot.data!.exists' properly
+          if (!snapshot.hasData ||
+              snapshot.data == null ||
+              !snapshot.data!.exists) {
             return const Center(child: Text("Order not found"));
           }
 
@@ -52,7 +53,7 @@ class OrderStatusScreen extends StatelessWidget {
           final items = (data['items'] as List<dynamic>?) ?? [];
           final total = (data['totalAmount'] ?? 0).toDouble();
 
-          // ✅ SYNCHRONIZATION LOGIC
+          // ✅ PROGRESS LOGIC
           int currentStep = 0;
           if (status == 'pending' || status == 'paid')
             currentStep = 1;
@@ -69,7 +70,7 @@ class OrderStatusScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                // --- 1. STATUS CARD (Top) ---
+                // --- 1. STATUS CARD ---
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -110,10 +111,9 @@ class OrderStatusScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 30),
 
-                // --- 2. TIMELINE TRACKER ---
+                // --- 2. TIMELINE ---
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -126,46 +126,41 @@ class OrderStatusScreen extends StatelessWidget {
                   child: Column(
                     children: [
                       _buildTimelineStep(
-                        step: 1,
-                        currentStep: currentStep,
-                        title: "Order Placed",
-                        subtitle: "We have received your order",
-                        isLast: false,
+                        1,
+                        currentStep,
+                        "Order Placed",
+                        "We have received your order",
+                        false,
                       ),
                       _buildTimelineStep(
-                        step: 2,
-                        currentStep: currentStep,
-                        title: "Preparing",
-                        subtitle: "Merchant is preparing your food",
-                        isLast: false,
+                        2,
+                        currentStep,
+                        "Preparing",
+                        "Merchant is preparing your food",
+                        false,
                       ),
                       _buildTimelineStep(
-                        step: 3,
-                        currentStep: currentStep,
-                        title:
-                            method == 'Pick Up'
-                                ? "Ready for Pickup"
-                                : "On The Way",
-                        subtitle:
-                            method == 'Pick Up'
-                                ? "Your food is waiting at the counter"
-                                : "Rider is delivering your food",
-                        isLast: false,
+                        3,
+                        currentStep,
+                        method == 'Pick Up' ? "Ready for Pickup" : "On The Way",
+                        method == 'Pick Up'
+                            ? "Waiting at the counter"
+                            : "Rider is delivering your food",
+                        false,
                       ),
                       _buildTimelineStep(
-                        step: 4,
-                        currentStep: currentStep,
-                        title: method == 'Pick Up' ? "Collected" : "Delivered",
-                        subtitle: "Enjoy your meal!",
-                        isLast: true,
+                        4,
+                        currentStep,
+                        method == 'Pick Up' ? "Collected" : "Delivered",
+                        "Enjoy your meal!",
+                        true,
                       ),
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 24),
 
-                // --- 3. ORDER SUMMARY ---
+                // --- 3. SUMMARY ---
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -173,29 +168,14 @@ class OrderStatusScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Order Summary",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: darkGreen,
-                        ),
-                      ),
-                      const Divider(height: 24),
                       ...items.map(
                         (item) => Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                "${item['quantity']}x ${item['name']}",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
+                              Text("${item['quantity']}x ${item['name']}"),
                               Text(
                                 "RM ${(item['price'] ?? 0).toStringAsFixed(2)}",
                                 style: const TextStyle(color: Colors.grey),
@@ -225,7 +205,6 @@ class OrderStatusScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
               ],
             ),
           );
@@ -234,21 +213,17 @@ class OrderStatusScreen extends StatelessWidget {
     );
   }
 
-  // --- HELPER: Timeline Logic ---
-  Widget _buildTimelineStep({
-    required int step,
-    required int currentStep,
-    required String title,
-    required String subtitle,
-    required bool isLast,
-  }) {
+  Widget _buildTimelineStep(
+    int step,
+    int currentStep,
+    String title,
+    String subtitle,
+    bool isLast,
+  ) {
     bool isCompleted = currentStep >= step;
-    // bool isActive = currentStep == step; // Not used but available
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left Side: Line and Dot
         Column(
           children: [
             Container(
@@ -259,12 +234,11 @@ class OrderStatusScreen extends StatelessWidget {
                 color: isCompleted ? darkGreen : Colors.grey[200],
                 border: Border.all(
                   color: isCompleted ? darkGreen : Colors.grey,
-                  width: 2,
                 ),
               ),
               child:
                   isCompleted
-                      ? Icon(Icons.check, size: 14, color: white)
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
                       : null,
             ),
             if (!isLast)
@@ -276,7 +250,6 @@ class OrderStatusScreen extends StatelessWidget {
           ],
         ),
         const SizedBox(width: 16),
-        // Right Side: Text
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,15 +259,13 @@ class OrderStatusScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
-                  color: isCompleted ? Colors.black : Colors.grey,
                 ),
               ),
-              const SizedBox(height: 4),
               Text(
                 subtitle,
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
-              const SizedBox(height: 32), // Spacing for next item
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -302,29 +273,20 @@ class OrderStatusScreen extends StatelessWidget {
     );
   }
 
-  // --- HELPER: Icons based on status ---
   IconData _getStatusIcon(String status, String method) {
     if (status == 'completed') return Icons.check_circle_outline;
     if (status == 'preparing') return Icons.restaurant;
-    if (method == 'Pick Up') {
-      if (status == 'ready') return Icons.shopping_bag_outlined;
-    } else {
-      if (status == 'on_the_way') return Icons.delivery_dining;
-    }
-    return Icons.receipt_long; // Default (pending)
+    return method == 'Pick Up' && status == 'ready'
+        ? Icons.shopping_bag_outlined
+        : Icons.delivery_dining;
   }
 
-  // --- HELPER: Text based on status ---
   String _getStatusTitle(String status, String method) {
     if (status == 'pending') return "Order Placed";
     if (status == 'preparing') return "Preparing Food";
     if (status == 'completed') return "Completed";
-
-    if (method == 'Pick Up') {
-      if (status == 'ready') return "Ready for Pickup";
-    } else {
-      if (status == 'on_the_way') return "Rider is nearby";
-    }
-    return "Processing...";
+    return method == 'Pick Up' && status == 'ready'
+        ? "Ready for Pickup"
+        : "On The Way";
   }
 }

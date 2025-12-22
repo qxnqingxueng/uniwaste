@@ -1,4 +1,4 @@
-import '../entities/merchant_entity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Merchant {
   final String id;
@@ -6,9 +6,8 @@ class Merchant {
   final String description;
   final String imageUrl;
   final double rating;
-  final bool isOpen;
-  // ✅ 1. Add categories field
   final List<String> categories;
+  final double deliveryFee;
 
   const Merchant({
     required this.id,
@@ -16,44 +15,43 @@ class Merchant {
     required this.description,
     required this.imageUrl,
     required this.rating,
-    required this.isOpen,
-    this.categories = const [], // ✅ Default to empty
+    required this.categories,
+    this.deliveryFee = 3.00,
   });
 
-  // ✅ 2. Update Empty Constructor
+  /// 1. READ: Create Merchant from Firestore Data
+  static Merchant fromEntity(Map<String, dynamic> data, String id) {
+    return Merchant(
+      id: id,
+      name: data['name'] ?? '',
+      description: data['description'] ?? '',
+      imageUrl: data['imageUrl'] ?? '',
+      rating: (data['rating'] ?? 0.0).toDouble(),
+      categories: List<String>.from(data['categories'] ?? []),
+      deliveryFee: (data['deliveryFee'] ?? 3.00).toDouble(),
+    );
+  }
+
+  /// 2. WRITE: Convert Merchant to Firestore Data
+  Map<String, dynamic> toDocument() {
+    return {
+      'name': name,
+      'description': description,
+      'imageUrl': imageUrl,
+      'rating': rating,
+      'categories': categories,
+      'deliveryFee': deliveryFee,
+    };
+  }
+
+  /// Optional: Helper for empty state
   static const empty = Merchant(
     id: '',
     name: '',
     description: '',
     imageUrl: '',
     rating: 0,
-    isOpen: false,
     categories: [],
+    deliveryFee: 0,
   );
-
-  // ✅ 3. Update fromEntity
-  static Merchant fromEntity(MerchantEntity entity) {
-    return Merchant(
-      id: entity.id,
-      name: entity.name,
-      description: entity.description,
-      imageUrl: entity.imageUrl,
-      rating: entity.rating,
-      isOpen: entity.isOpen,
-      categories: entity.categories, // Map logic
-    );
-  }
-
-  // ✅ 4. Update toEntity
-  MerchantEntity toEntity() {
-    return MerchantEntity(
-      id: id,
-      name: name,
-      description: description,
-      imageUrl: imageUrl,
-      rating: rating,
-      isOpen: isOpen,
-      categories: categories,
-    );
-  }
 }
