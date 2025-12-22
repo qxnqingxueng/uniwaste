@@ -55,7 +55,7 @@ class _P2PStudentPageState extends State<P2PStudentPage> {
       price: price,
     );
 
-    // 🔥 Ask claimer **once** if they want to share to feed
+    // Ask claimer **once** if they want to share to feed
     await ActivityShareHelper.recordAndMaybeShare(
       context: context,
       userId: currentUserId,

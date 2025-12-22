@@ -37,7 +37,7 @@ class ActivityService {
     });
 
     // also bump user points here
-    await _addPointsToUser(userId, points);   // 🔥 FIXED: use existing helper
+    await _addPointsToUser(userId, points);   
 
     return docRef.id;
   }
@@ -80,12 +80,12 @@ class ActivityService {
 
       tx.update(userRef, {'points': newPoints});
 
-      // 🔥 Check if user crossed 3000-point threshold
+      // Check if user crossed 350-point threshold
       int oldMilestone = oldPoints ~/ 350;
       int newMilestone = newPoints ~/ 350;
 
       if (newMilestone > oldMilestone) {
-        // User reached a new 3000 milestone → award voucher
+        // User reached a new 350 milestone → award voucher
         _grantVoucher(userId);
       }
     });

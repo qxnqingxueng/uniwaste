@@ -3,14 +3,12 @@ import 'dart:convert';      // for base64Encode / base64Decode
 import 'dart:typed_data';   // for Uint8List
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'voucher_screen.dart';
 import 'activity_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -23,7 +21,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Firebase
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // final FirebaseStorage _storage = FirebaseStorage.instance;
 
   final ImagePicker _picker = ImagePicker();
 
@@ -149,7 +146,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // convert to Base64 text
     final base64Str = base64Encode(bytes);
-
     // save into Firestore
     await _updateField('photoBase64', base64Str);
   }
