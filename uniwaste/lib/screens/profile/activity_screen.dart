@@ -5,10 +5,7 @@ import 'package:uniwaste/services/activity_service.dart';
 class ActivityScreen extends StatelessWidget {
   final String userId; // MUST pass current user ID
 
-  const ActivityScreen({
-    super.key,
-    required this.userId,
-  });
+  const ActivityScreen({super.key, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -20,10 +17,7 @@ class ActivityScreen extends StatelessWidget {
         elevation: 0,
         title: const Text(
           "My Activity",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         // 🔴 no more "+" test button here
@@ -67,11 +61,11 @@ class ActivityScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 4,
-                      offset: const Offset(0, 2),
+                      offset: Offset(0, 2),
                     ),
                   ],
                 ),
@@ -130,4 +124,3 @@ class ActivityScreen extends StatelessWidget {
     );
   }
 }
-

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
+import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
+//import 'package:google_fonts/google_fonts.dart';
 import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
 import 'package:uniwaste/screens/social/feed_screen.dart';
@@ -88,32 +90,27 @@ class _HomeScreenState extends State<HomeScreen> {
       // 2. MAIN BODY (The Canvas)
       // This switches content when you swipe or tap the bottom bar
       body: PageView(
-              controller: _pageController,
-              onPageChanged: _onPageChanged,
-              physics: const NeverScrollableScrollPhysics(), // Optional: Disable swipe if you only want tab clicks
-              children: [
-                // 0. Dashboard
-                const DashboardPage(),
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        physics:
+            const NeverScrollableScrollPhysics(), // Optional: Disable swipe if you only want tab clicks
+        children: [
+          // 0. Dashboard
+          const DashboardPage(),
 
           // Cart / Waste
-          Padding(
-            padding: const EdgeInsets.only(bottom: 100),
-            child: const Center(
-              child: Text("My Cart Page\n(Add your widgets here)"),
-            ),
-          ),
+          const CartScreen(),
 
           // Message
           const FeedScreen(),
 
           // Profile
-          const ProfileScreen()
-              ],
-            ),
-          /*
-          CartPage(), //TO be updated
-          */
-
+          const ProfileScreen(),
+        ],
+      ),
+      /*
+        CartPage(), //TO be updated
+      */
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
       bottomNavigationBar: Container(
