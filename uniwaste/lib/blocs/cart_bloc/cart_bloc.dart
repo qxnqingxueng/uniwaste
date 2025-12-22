@@ -1,19 +1,25 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
+
+// ✅ IMPORT the separate Event and State files
+import 'cart_event.dart';
+import 'cart_state.dart';
+
+// ✅ EXPORT them so checkout_screen.dart can see them too!
+export 'cart_event.dart';
+export 'cart_state.dart';
 
 class CartBloc extends Bloc<CartEvent, CartState> {
   // Internal list to hold items
-  List<CartItemModel> _items = [];
+  final List<CartItemModel> _items = [];
 
   CartBloc() : super(CartLoading()) {
     on<LoadCart>(_onLoadCart);
     on<AddItem>(_onAddItem);
     on<RemoveItem>(_onRemoveItem);
     on<ClearCart>(_onClearCart);
-    on<ToggleSelection>(_onToggleSelection); // ✅ Handle Toggle
-    on<UpdateQuantity>(_onUpdateQuantity); // ✅ Handle Quantity
+    on<ToggleSelection>(_onToggleSelection);
+    on<UpdateQuantity>(_onUpdateQuantity);
   }
 
   void _onLoadCart(LoadCart event, Emitter<CartState> emit) {
@@ -43,11 +49,10 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     emit(const CartLoaded(items: []));
   }
 
-  // ✅ LOGIC: Toggle Selection
+  // Toggle Selection
   void _onToggleSelection(ToggleSelection event, Emitter<CartState> emit) {
     final index = _items.indexWhere((item) => item.id == event.itemId);
     if (index != -1) {
-      // Toggle the boolean
       _items[index] = _items[index].copyWith(
         isSelected: !_items[index].isSelected,
       );
@@ -55,7 +60,7 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     }
   }
 
-  // ✅ LOGIC: Update Quantity
+  // Update Quantity
   void _onUpdateQuantity(UpdateQuantity event, Emitter<CartState> emit) {
     final index = _items.indexWhere((item) => item.id == event.itemId);
     if (index != -1) {

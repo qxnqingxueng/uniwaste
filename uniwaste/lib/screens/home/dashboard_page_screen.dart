@@ -265,7 +265,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   child: _buildCategoryCard(
                     title: "Merchant",
                     subtitle: "Surplus Left",
-                    imagePath: "assets/images/merchant.jpg",
+                    imagePath: "assets/images/merchant_icon.png",
                     onTap: () {
                       // Navigate to Marketplace Home
                       Navigator.push(

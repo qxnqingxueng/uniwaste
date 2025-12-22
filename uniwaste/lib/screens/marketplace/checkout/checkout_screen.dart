@@ -2,15 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+// Import CartBloc
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
+
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 import 'package:uniwaste/screens/marketplace/checkout/edit_address_screen.dart';
 import 'package:uniwaste/screens/marketplace/checkout/models/delivery_info.dart';
-import 'package:uniwaste/screens/marketplace/checkout/models/order_model.dart';
-import 'package:uniwaste/screens/marketplace/checkout/repositories/order_repository.dart';
-import 'package:uniwaste/screens/marketplace/checkout/services/payment_services.dart';
+import 'package:uniwaste/services/payment_service.dart';
 import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -22,12 +21,9 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   DeliveryInfo _deliveryInfo = DeliveryInfo();
-  final PaymentService _paymentService = PaymentService();
-  final OrderRepository _orderRepository = OrderRepository();
   bool _isProcessing = false;
   bool isDelivery = true;
 
-  // Colors
   final Color bgCream = const Color(0xFFF1F3E0);
   final Color sageGreen = const Color(0xFFD2DCB6);
   final Color accentGreen = const Color(0xFFA1BC98);
@@ -37,28 +33,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() => _isProcessing = true);
 
     // 1. Process Payment
-    final success = await _paymentService.makePayment(amount, "MYR");
+    final success = await PaymentService.instance.makePayment(context, amount);
 
     if (success) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+
+        // Extract Merchant ID safely
         final String merchantId =
             items.isNotEmpty ? (items.first.merchantId ?? '') : '';
 
-        // ✅ FIXED LOGIC: Use Transaction for Safe Updates
+        if (merchantId.isEmpty) {
+          print("❌ ERROR: Merchant ID is empty! Order will not sync.");
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Error: System cannot identify the merchant."),
+            ),
+          );
+          setState(() => _isProcessing = false);
+          return;
+        }
+
         try {
+          // 2. Update Inventory (Quantity & Availability)
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             for (var item in items) {
-              DocumentReference itemRef = FirebaseFirestore.instance
-                  .collection('food_listings')
+              // Point to the specific merchant's item collection
+              DocumentReference merchantItemRef = FirebaseFirestore.instance
+                  .collection('merchants')
+                  .doc(merchantId)
+                  .collection('items')
                   .doc(item.id);
 
-              // Read fresh data first to ensure stock exists
-              DocumentSnapshot snapshot = await transaction.get(itemRef);
+              DocumentSnapshot snapshot = await transaction.get(
+                merchantItemRef,
+              );
 
               if (snapshot.exists) {
-                // Safely convert to int (handle String/Number mismatch)
                 var currentQty = snapshot.get('quantity');
                 int qtyInt =
                     (currentQty is int)
@@ -66,54 +78,88 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         : int.tryParse(currentQty.toString()) ?? 0;
 
                 int newQty = qtyInt - item.quantity;
-                if (newQty < 0) newQty = 0; // Prevent negative stock
+                if (newQty < 0) newQty = 0;
 
-                transaction.update(itemRef, {'quantity': newQty});
-                print("✅ Updated ${item.name}: $qtyInt -> $newQty");
-              } else {
-                print("⚠️ Item not found in DB: ${item.id}");
+                // ✅ FIX: Update both quantity AND availability
+                transaction.update(merchantItemRef, {
+                  'quantity': newQty,
+                  'isAvailable':
+                      newQty >
+                      0, // If 0, it becomes false and disappears from UI
+                });
+
+                print(
+                  "✅ Updated Item: ${item.name} | Qty: $newQty | Available: ${newQty > 0}",
+                );
               }
             }
           });
+
+          // 3. Prepare Order Data
+          final orderData = {
+            'orderId': orderId,
+            'userId': user.uid,
+            'userName': user.displayName ?? "Student",
+            'userEmail': user.email ?? "",
+            'totalAmount': amount,
+            'status': 'pending', // Merchant sees this as new
+            'orderDate': FieldValue.serverTimestamp(),
+            'merchantId': merchantId,
+            'shippingAddress':
+                isDelivery
+                    ? "${_deliveryInfo.name}, ${_deliveryInfo.address}"
+                    : "Self Pick-Up",
+            'method': isDelivery ? 'Delivery' : 'Pick Up',
+            'items':
+                items
+                    .map(
+                      (i) => {
+                        'id': i.id,
+                        'name': i.name,
+                        'price': i.price,
+                        'quantity': i.quantity,
+                        'imagePath': i.imagePath,
+                      },
+                    )
+                    .toList(),
+          };
+
+          // 4. Double Write Strategy (Sync Fix)
+
+          // Write A: Global Orders (Student)
+          await FirebaseFirestore.instance
+              .collection('orders')
+              .doc(orderId)
+              .set(orderData);
+
+          // Write B: Merchant Orders (Merchant)
+          await FirebaseFirestore.instance
+              .collection('merchants')
+              .doc(merchantId)
+              .collection('orders')
+              .doc(orderId)
+              .set(orderData);
+
+          if (mounted) {
+            context.read<CartBloc>().add(ClearCart());
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) => OrderStatusScreen(orderId: orderId),
+              ),
+            );
+          }
         } catch (e) {
-          print("❌ Inventory Update Failed: $e");
-          // Consider showing a SnackBar here if critical, but we continue to create order
-        }
-
-        // 2. Create Order
-        final order = OrderModel(
-          orderId: orderId,
-          userId: user.uid,
-          userName: user.displayName ?? "Student",
-          totalAmount: amount,
-          status: 'paid',
-          orderDate: DateTime.now(),
-          items: items,
-          shippingAddress:
-              isDelivery
-                  ? "${_deliveryInfo.name}, ${_deliveryInfo.address}"
-                  : "Self Pick-Up",
-          method: isDelivery ? 'Delivery' : 'Pick Up',
-          merchantId: merchantId,
-        );
-
-        await _orderRepository.createOrder(order);
-
-        if (mounted) {
-          context.read<CartBloc>().add(ClearCart());
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => OrderStatusScreen(orderId: orderId),
-            ),
-          );
+          print("❌ Order Creation Failed: $e");
+          if (mounted) {
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text("Order failed: $e")));
+          }
         }
       }
     } else {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Payment Failed")));
+      print("Payment flow failed or cancelled.");
     }
     if (mounted) setState(() => _isProcessing = false);
   }
@@ -133,8 +179,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       body: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
-          if (state is! CartLoaded || state.items.isEmpty)
+          if (state is! CartLoaded || state.items.isEmpty) {
             return const Center(child: Text("No items"));
+          }
 
           final checkoutItems = state.items.where((i) => i.isSelected).toList();
           final subtotal = checkoutItems.fold(
@@ -149,7 +196,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Toggle Buttons
                 Row(
                   children: [
                     Expanded(
@@ -210,8 +256,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ),
                             ),
                           );
-                          if (result != null)
+                          if (result != null) {
                             setState(() => _deliveryInfo = result);
+                          }
                         },
                       ),
                     ),
@@ -249,7 +296,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                 const SizedBox(height: 24),
 
-                // Item Details
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -292,7 +338,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 const SizedBox(height: 30),
 
-                // Pay Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -302,7 +347,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ? null
                             : () => _handlePayment(checkoutItems, total),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: darkGreen, // #778873
+                      backgroundColor: darkGreen,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -339,7 +384,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isActive ? sageGreen : Colors.white, // #D2DCB6
+          color: isActive ? sageGreen : Colors.white,
           border: Border.all(
             color: isActive ? darkGreen : Colors.grey.shade300,
           ),

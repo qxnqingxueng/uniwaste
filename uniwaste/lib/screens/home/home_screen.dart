@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-//import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/dashboard_page_screen.dart';
 import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
-//import 'package:google_fonts/google_fonts.dart';
 import 'package:uniwaste/screens/waste-to-resources/qr_scanner_page.dart';
 import 'package:uniwaste/screens/profile/profile_screen.dart';
 import 'package:uniwaste/screens/social/feed_screen.dart';
@@ -16,7 +14,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Controller to handle page switching programmatically
+  /// Controller to handle page switching programmatically (From Main Branch)
   final PageController _pageController = PageController();
 
   /// Tracks the currently active tab
@@ -32,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentIndex = index;
     });
-    // Smoothly animate to the selected page
+    // Smoothly animate to the selected page (Teammate's feature)
     _pageController.animateToPage(
       index,
       duration: const Duration(milliseconds: 300),
@@ -46,36 +44,34 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  // Helper to build a custom navigation button
+  // Helper to build a custom navigation button (From Main Branch logic)
   Widget _buildNavBtn(int index, IconData icon, String label) {
-    // Check if this tab is currently active
     final bool isSelected = _currentIndex == index;
 
+    // Standardized colors from Main Branch
+    final Color activeColor = const Color.fromRGBO(
+      119,
+      136,
+      115,
+      1.0,
+    ); // #778873
+    final Color inactiveColor = const Color.fromRGBO(208, 209, 208, 1);
+
     return MaterialButton(
-      minWidth: 40, // Keeps buttons compact
+      minWidth: 40,
       onPressed: () => _onTabTapped(index),
-      splashColor: Colors.transparent, // Removes the splash effect
-      highlightColor: Colors.transparent, // Removes the highlight effect on tap
-      padding: const EdgeInsets.all(0), // Remove default padding
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      padding: const EdgeInsets.all(0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            icon,
-            color:
-                isSelected
-                    ? Color.fromRGBO(119, 136, 115, 1.0)
-                    : Color.fromRGBO(208, 209, 208, 1),
-            size: 28,
-          ),
+          Icon(icon, color: isSelected ? activeColor : inactiveColor, size: 28),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
-              color:
-                  isSelected
-                      ? Color.fromRGBO(119, 136, 115, 1.0)
-                      : Color.fromRGBO(208, 209, 208, 1),
+              color: isSelected ? activeColor : inactiveColor,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -87,56 +83,50 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
-
+      extendBody: true, // Allows the body to flow behind the FAB notch
       // 2. MAIN BODY (The Canvas)
-      // This switches content when you swipe or tap the bottom bar
+      // Uses PageView (from Main Branch) to allow animations, but loads YOUR screens
       body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChanged,
         physics:
-            const NeverScrollableScrollPhysics(), // Optional: Disable swipe if you only want tab clicks
-        children: [
-          // 0. Dashboard
-          const DashboardPage(),
+            const NeverScrollableScrollPhysics(), // Disables swipe to prevent accidental tab switching
+        children: const [
+          // Index 0: Dashboard
+          DashboardPage(),
 
-          // Cart / Waste
-          const CartScreen(),
+          // Index 1: Cart (Your Feature)
+          CartScreen(),
 
-          // Message
-          const FeedScreen(),
+          // Index 2: Social/Feed (Your Feature)
+          FeedScreen(),
 
-          // Profile
-          const ProfileScreen(),
+          // Index 3: Profile
+          ProfileScreen(),
         ],
       ),
-      /*
-        CartPage(), //TO be updated
-      */
 
       // 3. BOTTOM NAVIGATION (Frame Bottom)
+      // Kept Main Branch's design because it includes the QR Scanner FAB
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1), // Shadow color
-              blurRadius: 10, // How soft the shadow is
-              spreadRadius: 0.3, // How thick the shadow is
-              offset: const Offset(0, -3), // Negative Y moves the shadow UP
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              spreadRadius: 0.3,
+              offset: const Offset(0, -3),
             ),
           ],
         ),
         child: BottomAppBar(
-          shape: const CircularNotchedRectangle(), // Creates the cutout curve
-          notchMargin: 10.0, // Space between the FAB and the bar
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-          ), // Padding on ends
-          height: 60, // Fixed height for the bar
-          color: Colors.white, // Background color
-          elevation: 0, // Shadow
+          shape: const CircularNotchedRectangle(), // The cutout for the FAB
+          notchMargin: 10.0,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          height: 60,
+          color: Colors.white,
+          elevation: 0,
           clipBehavior: Clip.none,
-
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -144,10 +134,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(padding: const EdgeInsets.only(left: 5)),
+                  const Padding(padding: EdgeInsets.only(left: 5)),
                   _buildNavBtn(0, Icons.home, "Home"),
-                  // Add space between Home and Cart
                   const SizedBox(width: 25),
+                  // Linked to Index 1 (Your Cart)
                   _buildNavBtn(1, Icons.shopping_cart, "Cart"),
                 ],
               ),
@@ -156,24 +146,26 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Linked to Index 2 (Your Social)
                   _buildNavBtn(2, Icons.group_outlined, "Social"),
-                  // Add space between Chat and Profile
                   const SizedBox(width: 25),
                   _buildNavBtn(3, Icons.person, "Profile"),
-                  Padding(padding: const EdgeInsets.only(right: 5)),
+                  const Padding(padding: EdgeInsets.only(right: 5)),
                 ],
               ),
             ],
           ),
         ),
       ),
+
+      // The QR Scanner Button (Main Branch Feature)
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: Container(
         margin: const EdgeInsets.only(top: 10),
         height: 60,
         width: 60,
         child: FloatingActionButton(
-          backgroundColor: Color.fromRGBO(119, 136, 115, 1.0),
+          backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
           elevation: 0,
           onPressed: () {
             Navigator.push(
