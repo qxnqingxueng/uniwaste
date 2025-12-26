@@ -1,8 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart'; // 👈 for BuildContext
+import 'package:flutter/material.dart'; // for BuildContext
 import 'package:uniwaste/services/activity_service.dart';
-// 👈 new import
 
 class ChatService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -56,8 +55,6 @@ class ChatService {
 
   /// Creates (or reuses) a friend chat between donor & claimer
   /// and sends an "Item Card" message inside that chat.
-  ///
-  /// [context] is used only for showing the "Share to Feed?" dialog.
   Future<String> createChatAndSendCard({
     required String listingId,
     required String donorId,
@@ -79,6 +76,7 @@ class ChatService {
       claimerId: claimerName,
     };
 
+    // ✅ MODIFIED: Added 'lastSenderId' to set and update
     if (!chatSnap.exists) {
       await chatRef.set({
         'chatId': chatId,
@@ -88,6 +86,7 @@ class ChatService {
         'type': 'friend',
         'lastMessage': 'Claimed: $itemName',
         'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastSenderId': claimerId, // <--- Track who sent this
         'createdAt': FieldValue.serverTimestamp(),
       });
     } else {
@@ -96,6 +95,7 @@ class ChatService {
         'itemName': itemName,
         'lastMessage': 'Claimed: $itemName',
         'lastMessageTime': FieldValue.serverTimestamp(),
+        'lastSenderId': claimerId, // <--- Track who sent this
       });
     }
 
@@ -142,14 +142,15 @@ class ChatService {
       'timestamp': FieldValue.serverTimestamp(),
     });
 
+    // ✅ MODIFIED: Added 'lastSenderId'
     await _db.collection('chats').doc(chatId).update({
       'lastMessage': message,
       'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastSenderId': senderId, // <--- Track who sent this
     });
   }
 
   /// Delete a whole chat (all messages + chat doc).
-  /// ⚠️ This removes the conversation for BOTH users.
   Future<void> deleteChat(String chatId) async {
     try {
       final chatRef = _db.collection('chats').doc(chatId);
