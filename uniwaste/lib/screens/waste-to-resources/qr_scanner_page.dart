@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uniwaste/services/activity_service.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 
 class QrScanScreen extends StatefulWidget {
   const QrScanScreen({super.key});
@@ -20,6 +22,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
   bool _isScanned = false;
   bool _isLoading = false;
+  final Distance _distance = const Distance();
 
   @override
   void dispose() {
@@ -40,6 +43,31 @@ class _QrScanScreenState extends State<QrScanScreen> {
     }
   }
 
+  Future<Position?> _getCurrentLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      // Location services are disabled.
+      return null;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return null;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      return null;
+    }
+
+    return await Geolocator.getCurrentPosition();
+  }
+
   Future<void> _processQrCode(String code) async {
     if (_isLoading) return;
 
@@ -54,6 +82,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
 
     bool isPointCode = false;
     String resultMessage = '';
+    String resultTitle = '';
 
     // 2. CHECK DATABASE FOR POINTS
     try {
@@ -66,17 +95,52 @@ class _QrScanScreenState extends State<QrScanScreen> {
         final data = docSnapshot.data();
         final int pointsToAdd = data?['points'] ?? 0;
         // Fetch location (default to 'Unknown' if not set in DB)
-        final String location = data?['location'] ?? 'Waste Bin';
+        final String locationName = data?['location'] ?? 'Waste Bin';
+        final double? targetLat = data?['latitude'];
+        final double? targetLng = data?['longitude'];
 
         if (pointsToAdd > 0) {
-          await ActivityService().recordQrScan(
-            userId: user.uid,
-            locationName: location,
-            points: pointsToAdd,
-          );
+          bool locationValid = true;
 
-          isPointCode = true;
-          resultMessage = "Success! You collected $pointsToAdd points.";
+          // [ADDED] Perform location check if coordinates exist in DB
+          if (targetLat != null && targetLng != null) {
+            final Position? userPosition = await _getCurrentLocation();
+
+            if (userPosition == null) {
+              locationValid = false;
+              resultTitle = "Location Error";
+              resultMessage =
+                  "Please enable location services to collect points.";
+            } else {
+              // Calculate distance in meters
+              final double distanceInMeters = _distance.as(
+                LengthUnit.Meter,
+                LatLng(userPosition.latitude, userPosition.longitude),
+                LatLng(targetLat, targetLng),
+              );
+
+              // Validate distance (e.g., must be within 50 meters)
+              if (distanceInMeters > 50) {
+                locationValid = false;
+                resultTitle = "Too Far Away";
+                resultMessage =
+                    "You are ${distanceInMeters.toInt()}m away from the station. Please move closer to collect points.";
+              }
+            }
+          }
+
+          if (locationValid) {
+            await ActivityService().recordQrScan(
+              userId: user.uid,
+              locationName: locationName,
+              points: pointsToAdd,
+            );
+
+            isPointCode = true;
+            resultTitle = "Points Collected! 🌱";
+            resultMessage =
+                "Success! You collected $pointsToAdd points at $locationName.";
+          }
         }
       }
     } catch (e) {
@@ -95,6 +159,14 @@ class _QrScanScreenState extends State<QrScanScreen> {
       // It was a valid point code
       _showCustomDialog(
         title: "Points Collected! 🌱",
+        content: resultMessage,
+        isUrl: false,
+        code: code,
+      );
+    } else if (resultTitle.isNotEmpty) {
+      // [ADDED] Show error dialog for location failure
+      _showCustomDialog(
+        title: resultTitle,
         content: resultMessage,
         isUrl: false,
         code: code,
