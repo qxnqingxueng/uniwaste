@@ -11,6 +11,7 @@ import 'package:uniwaste/screens/profile/voucher_screen.dart';
 import 'package:uniwaste/screens/profile/activity_screen.dart';
 import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
 import 'package:uniwaste/screens/merchant/dashboard/merchant_dashboard_screen.dart';
+import 'package:uniwaste/screens/profile/company_registration_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -32,7 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _address = '';
   int _points = 0;
   String _role = 'student'; // Default role
-  
+
   // ✅ NEW FIELD: Reputation Score
   double _reputationScore = 100.0;
 
@@ -95,7 +96,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else {
           _reputationScore = 100.0; // Default if missing
         }
-
       } else {
         // Create default doc if missing
         await docRef.set({
@@ -357,6 +357,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(height: 20),
 
+                // --- COMPANY SECTION ---
+                _buildCompanySection(),
+
+                const SizedBox(height: 20),
+
                 // LOGOUT BUTTON
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24),
@@ -423,11 +428,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ✅ UPDATED BANNER: SHOW REPUTATION
   Widget _buildImpactBanner(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    
+
     // Color logic for score
     Color scoreColor = Colors.white;
-    if (_reputationScore < 50) scoreColor = Colors.redAccent;
-    else if (_reputationScore < 80) scoreColor = Colors.amberAccent;
+    if (_reputationScore < 50)
+      scoreColor = Colors.redAccent;
+    else if (_reputationScore < 80)
+      scoreColor = Colors.amberAccent;
 
     return SizedBox(
       width: width * 0.88,
@@ -469,14 +476,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               '“Every meal saved is one less in the bin.”',
               style: TextStyle(color: Colors.white, fontSize: 12),
             ),
-            
+
             // ✅ REPUTATION SECTION
             const SizedBox(height: 16),
             Divider(color: Colors.white.withOpacity(0.3), thickness: 1),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.shield_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   "Reputation: ",
@@ -485,9 +496,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   _reputationScore.toStringAsFixed(1),
                   style: TextStyle(
-                    color: scoreColor, 
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 16
+                    color: scoreColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
                 const Text(
@@ -502,51 +513,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // --- Merchant Section ---
   Widget _buildMerchantSection() {
+    // Check roles
+    final isMerchant = _role == 'merchant';
+    final isCompany = _role == 'company';
+
+    // If user is a Company, this button should be disabled (cannot trigger)
+    final bool isDisabled = isCompany;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
+        // If disabled, show grey background
         color:
-            _role == 'merchant' ? Colors.orange.shade50 : Colors.blue.shade50,
+            isDisabled
+                ? Colors.grey.shade200
+                : (isMerchant ? Colors.orange.shade50 : Colors.blue.shade50),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
+          // If disabled, show grey border
           color:
-              _role == 'merchant'
-                  ? Colors.orange.shade200
-                  : Colors.blue.shade200,
+              isDisabled
+                  ? Colors.grey.shade400
+                  : (isMerchant
+                      ? Colors.orange.shade200
+                      : Colors.blue.shade200),
         ),
       ),
       child: InkWell(
-        onTap: () async {
-          if (_role == 'merchant') {
-            // ✅ NAVIGATE TO MERCHANT DASHBOARD
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MerchantDashboardScreen(),
-              ),
-            );
-          } else {
-            // Navigate to Registration
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const MerchantRegistrationScreen(),
-              ),
-            );
-            // If they registered successfully, reload profile to update button
-            if (result == true) {
-              _loadUserProfile();
-            }
-          }
-        },
+        // If disabled, onTap is null (button doesn't work)
+        onTap:
+            isDisabled
+                ? null
+                : () async {
+                  if (isMerchant) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const MerchantDashboardScreen(),
+                      ),
+                    );
+                  } else {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => const MerchantRegistrationScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      _loadUserProfile();
+                    }
+                  }
+                },
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
               Icon(
-                _role == 'merchant' ? Icons.store : Icons.storefront_outlined,
-                color: _role == 'merchant' ? Colors.orange : Colors.blue,
+                isMerchant ? Icons.store : Icons.storefront_outlined,
+                color:
+                    isDisabled
+                        ? Colors.grey
+                        : (isMerchant ? Colors.orange : Colors.blue),
                 size: 28,
               ),
               const SizedBox(width: 16),
@@ -555,29 +585,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _role == 'merchant'
-                          ? 'Merchant Dashboard'
-                          : 'Become a Merchant',
+                      isDisabled
+                          ? 'Merchant Option Unavailable'
+                          : (isMerchant
+                              ? 'Merchant Dashboard'
+                              : 'Become a Merchant'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color:
-                            _role == 'merchant'
-                                ? Colors.orange.shade900
-                                : Colors.blue.shade900,
+                            isDisabled
+                                ? Colors.grey.shade600
+                                : (isMerchant
+                                    ? Colors.orange.shade900
+                                    : Colors.blue.shade900),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      _role == 'merchant'
-                          ? 'Manage menu & orders'
-                          : 'For official campus vendors',
+                      isDisabled
+                          ? 'You are registered as a Company'
+                          : (isMerchant
+                              ? 'Manage menu & orders'
+                              : 'For official campus vendors'),
                       style: TextStyle(
                         fontSize: 12,
                         color:
-                            _role == 'merchant'
-                                ? Colors.orange.shade700
-                                : Colors.blue.shade700,
+                            isDisabled
+                                ? Colors.grey.shade500
+                                : (isMerchant
+                                    ? Colors.orange.shade700
+                                    : Colors.blue.shade700),
                       ),
                     ),
                   ],
@@ -585,7 +623,128 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               Icon(
                 Icons.chevron_right,
-                color: _role == 'merchant' ? Colors.orange : Colors.blue,
+                color:
+                    isDisabled
+                        ? Colors.grey
+                        : (isMerchant ? Colors.orange : Colors.blue),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Company Section---
+  Widget _buildCompanySection() {
+    // Check roles
+    final isCompany = _role == 'company';
+    final isMerchant = _role == 'merchant';
+
+    // If user is a Merchant, this button should be disabled
+    final bool isDisabled = isMerchant;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        // If disabled, show grey background
+        color:
+            isDisabled
+                ? Colors.grey.shade200
+                : (isCompany ? Colors.orange.shade50 : Colors.blue.shade50),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color:
+              isDisabled
+                  ? Colors.grey.shade400
+                  : (isCompany ? Colors.orange.shade200 : Colors.blue.shade200),
+        ),
+      ),
+      child: InkWell(
+        onTap:
+            isDisabled
+                ? null
+                : () async {
+                  if (isCompany) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "You are already registered as a Company.",
+                        ),
+                      ),
+                    );
+                  } else {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CompanyRegistrationScreen(),
+                      ),
+                    );
+                    if (result == true) {
+                      _loadUserProfile();
+                    }
+                  }
+                },
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Icon(
+                isCompany ? Icons.business : Icons.business,
+                color:
+                    isDisabled
+                        ? Colors.grey
+                        : (isCompany ? Colors.orange : Colors.blue),
+                size: 28,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isDisabled
+                          ? 'Company Option Unavailable'
+                          : (isCompany
+                              ? 'Company Registered'
+                              : 'Become a Company'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            isDisabled
+                                ? Colors.grey.shade600
+                                : (isCompany
+                                    ? Colors.orange.shade900
+                                    : Colors.blue.shade900),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isDisabled
+                          ? 'You are registered as a Merchant'
+                          : (isCompany
+                              ? 'Corporate partner status active'
+                              : 'For corporate partners'),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            isDisabled
+                                ? Colors.grey.shade500
+                                : (isCompany
+                                    ? Colors.orange.shade700
+                                    : Colors.blue.shade700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color:
+                    isDisabled
+                        ? Colors.grey
+                        : (isCompany ? Colors.orange : Colors.blue),
               ),
             ],
           ),
