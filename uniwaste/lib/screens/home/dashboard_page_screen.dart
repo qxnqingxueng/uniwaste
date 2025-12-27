@@ -1,20 +1,13 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:ui';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
 import 'package:uniwaste/screens/profile/voucher_screen.dart';
 import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
-
-// ✅ NEW IMPORTS
-import 'package:uniwaste/services/chat_service.dart';
-import 'package:uniwaste/services/notification_service.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -28,9 +21,6 @@ class _DashboardPageState extends State<DashboardPage> {
   int _currentPoster = 0;
   Timer? _timer;
 
-  // ✅ Chat Listener Subscription
-  StreamSubscription? _chatSubscription;
-
   final List<String> _posterImages = [
     "assets/images/get_points_ways.png",
     "assets/images/recycle_foodwaste_step.png",
@@ -39,18 +29,6 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
-
-    // ✅ Initialize Notifications
-    NotificationService().init();
-
-    // ✅ Setup Chat Listener
-    // Access user immediately from Bloc state to start listening
-    final authState = context.read<AuthenticationBloc>().state;
-    if (authState.user != null && authState.user!.userId.isNotEmpty) {
-      _setupChatListener(authState.user!.userId);
-    }
-
-    // Carousel Timer
     _timer = Timer.periodic(const Duration(seconds: 4), (Timer timer) {
       if (_currentPoster < _posterImages.length - 1) {
         _currentPoster++;
@@ -62,46 +40,7 @@ class _DashboardPageState extends State<DashboardPage> {
           _currentPoster,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
         );
-      }
-    });
-  }
-
-  // ✅ LISTEN FOR NEW MESSAGES
-  void _setupChatListener(String currentUserId) {
-    _chatSubscription = ChatService().getUserChats(currentUserId).listen((snapshot) {
-      for (var change in snapshot.docChanges) {
-        // We only care if a chat was Modified (new message) or Added (new chat started)
-        if (change.type == DocumentChangeType.modified ||
-            change.type == DocumentChangeType.added) {
-          
-          final data = change.doc.data() as Map<String, dynamic>;
-          final String? lastSenderId = data['lastSenderId'];
-          final String lastMessage = data['lastMessage'] ?? 'New message';
-          final Timestamp? timestamp = data['lastMessageTime'];
-
-          // 1. Check if the message was sent by someone else
-          if (lastSenderId != null && lastSenderId != currentUserId) {
-            
-            // 2. Check time difference to avoid spamming old messages on app startup
-            if (timestamp != null) {
-              final DateTime msgTime = timestamp.toDate();
-              final DateTime now = DateTime.now();
-
-              // Only notify if message is less than 10 seconds old
-              if (now.difference(msgTime).inSeconds < 10) {
-                NotificationService().showNotification(
-                  id: change.doc.hashCode, // Unique ID based on document hash
-                  title: 'New Message',
-                  body: lastMessage,
-                  payload: change.doc.id, // Pass chatId to handle taps
-                );
-              }
-            }
-          }
-        }
       }
     });
   }
@@ -110,7 +49,6 @@ class _DashboardPageState extends State<DashboardPage> {
   void dispose() {
     _timer?.cancel();
     _posterController.dispose();
-    _chatSubscription?.cancel(); // ✅ Clean up listener
     super.dispose();
   }
 
