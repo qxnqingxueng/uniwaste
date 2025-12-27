@@ -5,6 +5,7 @@ import 'package:uniwaste/screens/home/home_screen.dart';
 import 'package:uniwaste/screens/auth/auth_wrapper.dart';
 import 'package:uniwaste/blocs/notification_bloc/notification_bloc.dart';
 import 'package:user_repository/user_repository.dart';
+import 'package:uniwaste/screens/admin/admin_report_screen.dart';
 
 
 class MyAppView extends StatelessWidget {
@@ -40,12 +41,19 @@ class MyAppView extends StatelessWidget {
         },
         child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
           builder: (context, state) {
-            if (state.status == AuthenticationStatus.authenticated) {
-              return const HomeScreen();
-            } else {
-              return const AuthWrapper();
-            }
-          },
+              if (state.status == AuthenticationStatus.authenticated) {
+                
+                // ✅ Check Role Instead of Email
+                if (state.user?.isAdmin == true) {
+                  return const AdminReportScreen();
+                }
+
+                return const HomeScreen();
+
+              } else {
+                return const AuthWrapper();
+              }
+          }
         ),
       ),
     );
