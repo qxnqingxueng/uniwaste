@@ -8,10 +8,12 @@ import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
 import 'package:uniwaste/blocs/merchant_bloc/merchant_bloc.dart'; // ✅ Import this
 import 'app_view.dart';
 import 'package:uniwaste/blocs/merchant_order_bloc/merchant_order_bloc.dart';
+import 'package:uniwaste/blocs/notification_bloc/notification_bloc.dart';
 
 class MyApp extends StatelessWidget {
   final UserRepository userRepository;
   final MerchantRepository merchantRepository; // ✅ Ensure this is here
+  
 
   const MyApp(this.userRepository, this.merchantRepository, {super.key});
 
@@ -21,6 +23,9 @@ class MyApp extends StatelessWidget {
       providers: [
         RepositoryProvider.value(value: userRepository),
         RepositoryProvider.value(value: merchantRepository),
+        BlocProvider<NotificationBloc>(
+            create: (context) => NotificationBloc(),
+          ),
       ],
       child: MultiBlocProvider(
         providers: [
