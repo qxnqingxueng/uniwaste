@@ -13,6 +13,7 @@ import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
 import 'package:uniwaste/screens/merchant/dashboard/merchant_dashboard_screen.dart';
 import 'package:uniwaste/screens/profile/company_registration_screen.dart';
 import 'package:uniwaste/screens/waste-to-resources/company/company_dashboard_screen.dart';
+import 'package:uniwaste/screens/admin/admin_report_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -362,6 +363,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildCompanySection(),
 
                 const SizedBox(height: 20),
+                ListTile(
+                  leading: const Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.red,
+                  ),
+                  title: const Text("Admin Panel"),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdminReportScreen(),
+                      ),
+                    );
+                  },
+                ),
 
                 // LOGOUT BUTTON
                 Container(
