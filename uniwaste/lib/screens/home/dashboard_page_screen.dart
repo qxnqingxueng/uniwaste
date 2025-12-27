@@ -147,7 +147,6 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(width: 8),
         ],
       ),
-
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
