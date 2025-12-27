@@ -7,6 +7,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:user_repository/user_repository.dart';
 import 'package:uniwaste/app.dart';
 import 'package:uniwaste/simple_bloc_observer.dart';
+import 'package:uniwaste/services/notification_service.dart';
 
 // ✅ THIS IMPORT IS CRITICAL
 import 'package:merchant_repository/merchant_repository.dart';
@@ -21,6 +22,8 @@ void main() async {
     appleProvider: AppleProvider.debug,
   );
   Bloc.observer = SimpleBlocObserver();
+  final notificationService = NotificationService();
+  await notificationService.init();
 
   final userRepository = FirebaseUserRepo();
 
