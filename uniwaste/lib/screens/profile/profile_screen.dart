@@ -12,6 +12,7 @@ import 'package:uniwaste/screens/profile/activity_screen.dart';
 import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
 import 'package:uniwaste/screens/merchant/dashboard/merchant_dashboard_screen.dart';
 import 'package:uniwaste/screens/profile/company_registration_screen.dart';
+import 'package:uniwaste/screens/waste-to-resources/company/company_dashboard_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -666,11 +667,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? null
                 : () async {
                   if (isCompany) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          "You are already registered as a Company.",
-                        ),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CompanyDashboardScreen(),
                       ),
                     );
                   } else {

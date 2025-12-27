@@ -303,194 +303,79 @@ class _WasteMapScreenState extends State<WasteBinMap> {
       context: context,
       isScrollControlled: true,
       builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final Color currentColor =
-                tempStatus == 'Active'
-                    ? (tempLevel >= 80
-                        ? Colors.red
-                        : (tempLevel >= 50 ? Colors.orange : Colors.green))
-                    : (tempStatus == 'Maintenance'
-                        ? Colors.orange.shade800
-                        : Colors.grey);
+        final Color currentColor =
+            tempStatus == 'Active'
+                ? (tempLevel >= 80
+                    ? Colors.red
+                    : (tempLevel >= 50 ? Colors.orange : Colors.green))
+                : (tempStatus == 'Maintenance'
+                    ? Colors.orange.shade800
+                    : Colors.grey);
 
-            return Container(
-              padding: const EdgeInsets.all(20),
-              height: 480,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: 300, // Reduced height since controls are gone
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                bin.name,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                "Status: $tempStatus",
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
                 children: [
                   Text(
-                    bin.name,
-                    style: const TextStyle(
-                      fontSize: 20,
+                    "${tempLevel.toInt()}%",
+                    style: TextStyle(
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
+                      color: currentColor,
                     ),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    "ID: ${bin.id}",
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                  const SizedBox(height: 20),
-
-                  Row(
-                    children: [
-                      Text(
-                        "${tempLevel.toInt()}%",
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: currentColor,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: LinearProgressIndicator(
-                          value: tempLevel / 100,
-                          color: currentColor,
-                          backgroundColor: Colors.grey.shade200,
-                          minHeight: 10,
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-
-                  const Text(
-                    "Adjust Fill Level:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Slider(
-                    value: tempLevel,
-                    min: 0,
-                    max: 100,
-                    divisions: 10,
-                    activeColor: currentColor,
-                    label: "${tempLevel.toInt()}%",
-                    onChanged: (val) {
-                      setModalState(() => tempLevel = val);
-                    },
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  const Text(
-                    "Station Status:",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _buildStatusCard(
-                        "Active",
-                        Colors.green,
-                        tempStatus,
-                        (val) => setModalState(() => tempStatus = val),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildStatusCard(
-                        "Maintenance",
-                        Colors.orange,
-                        tempStatus,
-                        (val) => setModalState(() => tempStatus = val),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildStatusCard(
-                        "Not Active",
-                        Colors.grey,
-                        tempStatus,
-                        (val) => setModalState(() => tempStatus = val),
-                      ),
-                    ],
-                  ),
-
-                  const Spacer(),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(
-                          119,
-                          136,
-                          115,
-                          1.0,
-                        ),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () async {
-                        try {
-                          await FirebaseFirestore.instance
-                              .collection('waste_bins')
-                              .doc(bin.id)
-                              .update({
-                                'fillLevel': tempLevel,
-                                'status': tempStatus,
-                              });
-
-                          if (mounted) Navigator.pop(ctx);
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Failed to update: $e")),
-                          );
-                        }
-                      },
-                      child: const Text("Update Station Status"),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: LinearProgressIndicator(
+                      value: tempLevel / 100,
+                      color: currentColor,
+                      backgroundColor: Colors.grey.shade200,
+                      minHeight: 10,
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                 ],
               ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildStatusCard(
-    String status,
-    Color color,
-    String currentStatus,
-    Function(String) onTap,
-  ) {
-    bool isSelected = status == currentStatus;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => onTap(status),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.1) : Colors.white,
-            border: Border.all(
-              color: isSelected ? color : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Column(
-            children: [
-              Icon(
-                Icons.circle,
-                size: 14,
-                color: isSelected ? color : Colors.grey,
+              const SizedBox(height: 10),
+              const Text(
+                "This is a live view of the bin capacity.",
+                style: TextStyle(color: Colors.grey),
               ),
-              const SizedBox(height: 4),
-              Text(
-                status,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected ? color : Colors.grey,
+              const Spacer(),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey.shade200,
+                    foregroundColor: Colors.black,
+                  ),
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Close"),
                 ),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -498,7 +383,6 @@ class _WasteMapScreenState extends State<WasteBinMap> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Waste Bin Map"), centerTitle: true),
-
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
@@ -509,21 +393,17 @@ class _WasteMapScreenState extends State<WasteBinMap> {
             onPressed: _showStationList,
             child: const Icon(Icons.format_list_bulleted),
           ),
-
           const SizedBox(height: 12),
-
           FloatingActionButton(
             heroTag: "gps_btn",
             onPressed: () {
-              if (_currentLocation != null) {
+              if (_currentLocation != null)
                 _mapController.move(_currentLocation!, 16);
-              }
             },
             child: const Icon(Icons.my_location),
           ),
         ],
       ),
-
       body: FlutterMap(
         mapController: _mapController,
         options: const MapOptions(
@@ -539,7 +419,6 @@ class _WasteMapScreenState extends State<WasteBinMap> {
             markers: [
               ..._bins.map((bin) {
                 final Color markerColor = _getBinColor(bin);
-
                 return Marker(
                   point: bin.location,
                   width: 50,
@@ -603,12 +482,6 @@ class _WasteMapScreenState extends State<WasteBinMap> {
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 2,
-                            ),
-                          ],
                         ),
                         child: const Text(
                           "You",
