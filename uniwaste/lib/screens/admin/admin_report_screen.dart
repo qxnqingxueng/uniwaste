@@ -39,17 +39,23 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
 
     if (confirm != true) return;
 
+if (confirm != true) return;
+
     try {
       final userRef = _db.collection('users').doc(userId);
-      // ✅ LOGIC: Ban for exactly 10 days
       final tenDaysLater = DateTime.now().add(const Duration(days: 10));
 
       await _db.runTransaction((transaction) async {
         transaction.update(userRef, {
-          'reportCount': FieldValue.increment(1),
-          'reputationScore': FieldValue.increment(-20.0), // Penalty
+          // ❌ REMOVED: 'reportCount': FieldValue.increment(1), 
+          // REASON: The count already went up when the student submitted the report.
+          // We don't want to double count the same incident.
+          
+          'reputationScore': FieldValue.increment(-20.0), // Apply Penalty
           'banExpiresAt': Timestamp.fromDate(tenDaysLater), // Apply Ban
         });
+        
+        // Resolve the ticket
         transaction.delete(_db.collection('reports').doc(reportId));
       });
 

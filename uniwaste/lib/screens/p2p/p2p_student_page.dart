@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart'; // ✅ Added for proof upload
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:user_repository/user_repository.dart';
 
@@ -13,7 +13,7 @@ import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
 import 'package:uniwaste/services/activity_share_helper.dart';
 import 'package:uniwaste/screens/p2p/product_detail_screen.dart';
-import 'package:uniwaste/widgets/animated_check.dart';
+import 'package:uniwaste/widgets/animated_check.dart'; // ✅ Using this widget
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});
@@ -338,10 +338,35 @@ class _P2PStudentPageState extends State<P2PStudentPage>
       });
 
       if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Review submitted!")));
+        Navigator.pop(context); // Close Rating Dialog
+        
+        // ✅ REPLACED SNACKBAR WITH ANIMATED CHECK DIALOG
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80),
+                const SizedBox(height: 20),
+                const Text(
+                  "Review Submitted!",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+              ),
+            ],
+          ),
+        );
       }
     } catch (e) {
       debugPrint("Error rating user: $e");
@@ -349,43 +374,111 @@ class _P2PStudentPageState extends State<P2PStudentPage>
     }
   }
 
-  // ✅ UPDATED: Report with Image Proof
+  // --- REPORT LOGIC ---
   Future<void> _submitReport(
     String donorId,
     String reason,
     String listingId,
-    Uint8List? proofBytes, // NEW: Image Proof
+    Uint8List? proofBytes,
   ) async {
     if (reason.trim().isEmpty) return;
 
+    final String? reporterId = context.read<AuthenticationBloc>().state.user?.userId;
+    if (reporterId == null) return;
+
     try {
+      // 1. CHECK FOR DUPLICATES
+      final existingReports = await _db
+          .collection('reports')
+          .where('listing_id', isEqualTo: listingId)
+          .where('reporter_id', isEqualTo: reporterId)
+          .get();
+
+      if (existingReports.docs.isNotEmpty) {
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("You have already reported this item."),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 2. PREPARE DATA
       final Map<String, dynamic> reportData = {
         'reported_user': donorId,
         'reason': reason,
-        'listing_id': listingId, // Important for Admin
+        'listing_id': listingId,
         'timestamp': FieldValue.serverTimestamp(),
-        'reporter_id': context.read<AuthenticationBloc>().state.user?.userId,
+        'reporter_id': reporterId,
       };
 
       if (proofBytes != null) {
         reportData['report_proof_blob'] = Blob(proofBytes);
       }
 
-      await _db.collection('reports').add(reportData);
+      // 3. RUN TRANSACTION
+      await _db.runTransaction((transaction) async {
+         final newReportRef = _db.collection('reports').doc();
+         transaction.set(newReportRef, reportData);
+
+         final userRef = _db.collection('users').doc(donorId);
+         transaction.update(userRef, {
+           'reportCount': FieldValue.increment(1),
+         });
+
+         final listingRef = _db.collection('food_listings').doc(listingId);
+         transaction.update(listingRef, {
+           'is_reported_by_claimer': true,
+         });
+      });
 
       if (mounted) {
-        Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Report submitted. Admins will review the proof.",
+        Navigator.pop(context); // Close Report Dialog
+        
+        // ✅ REPLACED SNACKBAR WITH ANIMATED CHECK DIALOG
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80),
+                const SizedBox(height: 20),
+                const Text(
+                  "Report Submitted!",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Thank you for helping keep the community safe.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+              ),
+            ],
           ),
         );
       }
     } catch (e) {
       debugPrint("Error reporting user: $e");
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     }
   }
 
@@ -447,10 +540,9 @@ class _P2PStudentPageState extends State<P2PStudentPage>
     );
   }
 
-  // ✅ UPDATED: Report Dialog with Image Picker
-  void _showReportDialog(String donorId, String listingId) {
+void _showReportDialog(String donorId, String listingId) {
     final reasonController = TextEditingController();
-    Uint8List? proofImage; // Temp image storage
+    Uint8List? proofImage;
 
     showDialog(
       context: context,
@@ -464,6 +556,7 @@ class _P2PStudentPageState extends State<P2PStudentPage>
                 title: const Text("Report Issue"),
                 content: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
                       "Please describe the issue and upload proof.",
@@ -479,10 +572,15 @@ class _P2PStudentPageState extends State<P2PStudentPage>
                     ),
                     const SizedBox(height: 10),
                     
-                    // PROOF UPLOAD AREA
                     GestureDetector(
                       onTap: () async {
-                        final XFile? image = await ImagePicker().pickImage(source: ImageSource.gallery);
+                        // ✅ FIX: Added maxWidth and imageQuality to reduce size < 1MB
+                        final XFile? image = await ImagePicker().pickImage(
+                          source: ImageSource.gallery,
+                          maxWidth: 800,   // Resize to max 800px width
+                          imageQuality: 50, // Compress quality to 50%
+                        );
+                        
                         if (image != null) {
                            final bytes = await image.readAsBytes();
                            setDialogState(() => proofImage = bytes);
@@ -490,7 +588,6 @@ class _P2PStudentPageState extends State<P2PStudentPage>
                       },
                       child: Container(
                         height: 100,
-                        width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(8),
@@ -507,7 +604,11 @@ class _P2PStudentPageState extends State<P2PStudentPage>
                             )
                           : ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(proofImage!, fit: BoxFit.cover, width: double.infinity),
+                              child: Image.memory(
+                                proofImage!, 
+                                fit: BoxFit.cover,
+                                width: double.maxFinite,
+                              ),
                             ),
                       ),
                     )
@@ -807,8 +908,8 @@ class _P2PStudentPageState extends State<P2PStudentPage>
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
             final donorId = data['donor_id'] ?? '';
-            final bool isRated =
-                data['is_rated'] ?? false; 
+            final bool isRated = data['is_rated'] ?? false;
+            final bool isReported = data['is_reported_by_claimer'] ?? false;
 
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
@@ -879,26 +980,38 @@ class _P2PStudentPageState extends State<P2PStudentPage>
 
                         const SizedBox(width: 10),
 
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            icon: const Icon(
-                              Icons.flag,
-                              size: 16,
-                              color: Colors.red,
+                        if (!isReported)
+                           Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(
+                                Icons.flag,
+                                size: 16,
+                                color: Colors.red,
+                              ),
+                              label: const Text(
+                                "Report",
+                                style: TextStyle(color: Colors.red),
+                              ),
+                              onPressed: () => _showReportDialog(
+                                donorId, 
+                                docs[index].id 
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red),
+                              ),
                             ),
-                            label: const Text(
-                              "Report",
-                              style: TextStyle(color: Colors.red),
-                            ),
-                            onPressed: () => _showReportDialog(
-                              donorId, 
-                              docs[index].id 
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.red),
-                            ),
-                          ),
-                        ),
+                          )
+                        else
+                           Expanded(
+                             child: OutlinedButton.icon(
+                               onPressed: null, // Disabled
+                               icon: const Icon(Icons.flag, size: 16, color: Colors.grey),
+                               label: const Text("Reported", style: TextStyle(color: Colors.grey)),
+                               style: OutlinedButton.styleFrom(
+                                 side: const BorderSide(color: Colors.grey),
+                               ),
+                             ),
+                           ),
                       ],
                     ),
                   ),
