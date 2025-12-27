@@ -9,6 +9,7 @@ import 'package:user_repository/user_repository.dart';
 
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/create_listing_screen.dart';
+import 'package:uniwaste/screens/p2p/create_listing_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
 import 'package:uniwaste/services/activity_share_helper.dart';
@@ -22,6 +23,8 @@ class P2PStudentPage extends StatefulWidget {
   State<P2PStudentPage> createState() => _P2PStudentPageState();
 }
 
+class _P2PStudentPageState extends State<P2PStudentPage>
+    with SingleTickerProviderStateMixin {
 class _P2PStudentPageState extends State<P2PStudentPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
@@ -101,6 +104,10 @@ class _P2PStudentPageState extends State<P2PStudentPage>
           (context) => const Center(
             child: CircularProgressIndicator(color: Colors.white),
           ),
+      builder:
+          (context) => const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
     );
 
     try {
@@ -131,8 +138,45 @@ class _P2PStudentPageState extends State<P2PStudentPage>
         Navigator.pop(context); // Close Loader
         Navigator.pop(context); // Close Detail Screen
 
+
         showDialog(
           context: context,
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 10),
+                    const AnimatedCheck(size: 80),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Claim Successful!",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Check your "My Claims" tab.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(color: Color(0xFF6B8E23)),
+                    ),
+                  ),
+                ],
+              ),
           builder:
               (ctx) => AlertDialog(
                 shape: RoundedRectangleBorder(
@@ -179,11 +223,54 @@ class _P2PStudentPageState extends State<P2PStudentPage>
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
 
   // --- SHARE LOGIC ---
+  Future<void> _shareItem(
+    Map<String, dynamic> data,
+    String docId,
+    String userId,
+    String userName,
+  ) async {
+    final bool confirm =
+        await showDialog(
+          context: context,
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                title: const Text("Share to Feed?"),
+                content: const Text(
+                  "Do you want to share this activity so others can see your impact?",
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: const Text(
+                      "Not now",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: const Text(
+                      "Share",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6B8E23),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+        ) ??
+        false;
   Future<void> _shareItem(
     Map<String, dynamic> data,
     String docId,
@@ -285,6 +372,10 @@ class _P2PStudentPageState extends State<P2PStudentPage>
   ) async {
     final chatService = ChatService();
     final chatId = await chatService.getOrCreateChat(
+      userAId: userId,
+      userBId: data['donor_id'],
+      currentUserName: userName,
+      otherUserName: data['donor_name'],
       userAId: userId,
       userBId: data['donor_id'],
       currentUserName: userName,
@@ -781,6 +872,7 @@ class _P2PStudentPageState extends State<P2PStudentPage>
     );
   }
 
+  // --- UPDATED: My Claims List with Rate & Report ---
   Widget _buildMyClaimsList() {
     final currentUser = context.select(
       (AuthenticationBloc bloc) => bloc.state.user,

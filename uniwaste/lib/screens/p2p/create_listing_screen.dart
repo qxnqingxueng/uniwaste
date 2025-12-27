@@ -21,8 +21,11 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   File? _imageFile;
   Uint8List? _imageBytes;
   File? _proofImageFile;
+  Uint8List? _imageBytes;
+  File? _proofImageFile;
   Uint8List? _proofImageBytes;
 
+  String _foodType = 'cooked';
   String _foodType = 'cooked';
   bool _isFree = true;
   DateTime? _expiryDate;
@@ -89,6 +92,8 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       source: ImageSource.gallery,
       maxWidth: 600,
       imageQuality: 70,
+      maxWidth: 600,
+      imageQuality: 70,
     );
 
     if (pickedFile != null) {
@@ -118,6 +123,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
   }
 
   Future<void> _selectExpiryDate() async {
+  Future<void> _selectExpiryDate() async {
     final DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -125,12 +131,14 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (pickedDate == null) return;
+    if (pickedDate == null) return;
     if (!mounted) return;
 
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
+    if (pickedTime == null) return;
     if (pickedTime == null) return;
 
     setState(() {
@@ -191,6 +199,7 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Listing Posted Successfully!')),
         );
+        Navigator.pop(context);
         Navigator.pop(context);
       }
     } catch (e) {

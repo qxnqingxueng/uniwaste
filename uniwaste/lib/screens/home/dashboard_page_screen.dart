@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:ui';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
@@ -57,6 +60,8 @@ class _DashboardPageState extends State<DashboardPage> {
       if (_posterController.hasClients) {
         _posterController.animateToPage(
           _currentPoster,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
@@ -147,6 +152,7 @@ class _DashboardPageState extends State<DashboardPage> {
           const SizedBox(width: 8),
         ],
       ),
+
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
