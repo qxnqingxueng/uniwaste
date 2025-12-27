@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/home_screen.dart';
 import 'package:uniwaste/screens/auth/auth_wrapper.dart';
+import 'package:uniwaste/blocs/notification_bloc/notification_bloc.dart';
+import 'package:user_repository/user_repository.dart';
+
 
 class MyAppView extends StatelessWidget {
   const MyAppView({super.key});
@@ -23,15 +26,27 @@ class MyAppView extends StatelessWidget {
           },
         ),
       ),
-      home: BlocBuilder<AuthenticationBloc, AuthenticationState>(
-        builder: (context, state) {
+      home: BlocListener<AuthenticationBloc, AuthenticationState>(
+        listener: (context, state) {
           if (state.status == AuthenticationStatus.authenticated) {
-            // CLEANER: Just return the widget
-            return const HomeScreen();
+            // User logged in -> Start listening for messages
+            context.read<NotificationBloc>().add(
+              StartNotificationListener(state.user!.userId),
+            );
           } else {
-            return const AuthWrapper();
+            // User logged out -> Stop listening
+            context.read<NotificationBloc>().add(StopNotificationListener());
           }
         },
+        child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+          builder: (context, state) {
+            if (state.status == AuthenticationStatus.authenticated) {
+              return const HomeScreen();
+            } else {
+              return const AuthWrapper();
+            }
+          },
+        ),
       ),
     );
   }
