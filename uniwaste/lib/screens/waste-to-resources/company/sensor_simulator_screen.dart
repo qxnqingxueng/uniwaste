@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart'; // Import WasteBin model
+import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
+import 'package:uniwaste/services/notification_service.dart';
 
 class SensorSimulatorScreen extends StatefulWidget {
   const SensorSimulatorScreen({super.key});
@@ -10,14 +11,12 @@ class SensorSimulatorScreen extends StatefulWidget {
 }
 
 class _SensorSimulatorScreenState extends State<SensorSimulatorScreen> {
-  // [UPDATED] Helper to determine color based on simulator logic
+  // Helper to determine color based on simulator logic
   Color _getBinColor(WasteBin bin) {
-    // Both 'Not Active' and 'Maintenance' now return Grey
     if (bin.status == 'Not Active' || bin.status == 'Maintenance') {
       return Colors.grey;
     }
 
-    // Active Logic
     double level = bin.fillLevel;
     if (level == 100) return const Color.fromARGB(255, 160, 15, 5);
     if (level >= 80) return Colors.red;
@@ -35,7 +34,6 @@ class _SensorSimulatorScreenState extends State<SensorSimulatorScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            // [UPDATED] Color Logic for the Modal (Progress Bar & Text)
             final Color currentColor =
                 tempStatus == 'Active'
                     ? (tempLevel == 100
@@ -43,7 +41,7 @@ class _SensorSimulatorScreenState extends State<SensorSimulatorScreen> {
                         : (tempLevel >= 80
                             ? Colors.red
                             : (tempLevel >= 50 ? Colors.orange : Colors.green)))
-                    : Colors.grey; // Maintenance uses Grey now
+                    : Colors.grey;
 
             return Container(
               padding: const EdgeInsets.all(20),
@@ -130,7 +128,6 @@ class _SensorSimulatorScreenState extends State<SensorSimulatorScreen> {
                         (val) => setModalState(() => tempStatus = val),
                       ),
                       const SizedBox(width: 8),
-                      // I kept the button Orange so you know what you selected, but the result above is Grey
                       _buildStatusCard(
                         "Maintenance",
                         Colors.orange,
@@ -171,6 +168,16 @@ class _SensorSimulatorScreenState extends State<SensorSimulatorScreen> {
                                 'fillLevel': tempLevel,
                                 'status': tempStatus,
                               });
+
+                          // Trigger Notification if level is 100%
+                          if (tempLevel == 100) {
+                            NotificationService().showNotification(
+                              id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                              title: "Bin Full Alert",
+                              body: "Bin ${bin.name} is at 100% capacity",
+                              payload: 'waste_collection',
+                            );
+                          }
 
                           if (mounted) Navigator.pop(ctx);
                         } catch (e) {
