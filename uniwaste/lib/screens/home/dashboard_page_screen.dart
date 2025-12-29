@@ -150,7 +150,9 @@ class _DashboardPageState extends State<DashboardPage> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF6B8E23).withOpacity(0.3),
+                            color: const Color(
+                              0xFF6B8E23,
+                            ).withValues(alpha: 0.3),
                             blurRadius: 15,
                             offset: const Offset(0, 8),
                           ),
@@ -188,7 +190,7 @@ class _DashboardPageState extends State<DashboardPage> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(
@@ -298,7 +300,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                 const SizedBox(height: 30),
 
-                // --- DISCOVER ---
+                // --- DISCOVER (MAP) ---
                 const Text(
                   "Discover",
                   style: TextStyle(
@@ -331,7 +333,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -356,7 +358,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 30),
+
+                // --- NEW: ENVIRONMENTAL IMPACT SECTION ---
+                _buildEnvironmentalImpactSection(),
+
+                const SizedBox(height: 30),
 
                 // --- DAILY TIP ---
                 Container(
@@ -394,7 +401,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                             SizedBox(height: 4),
                             Text(
-                              "One-third of all food produced is lost or wasted. Sharing just one meal helps save 2.5kg of CO2 emissions!",
+                              "Recycling food waste prevents methane release! One bin helps stop 0.27 m³ of harmful gas.",
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontSize: 12,
@@ -414,6 +421,199 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- UPDATED LOGIC FOR METHANE PREVENTED ---
+  Widget _buildEnvironmentalImpactSection() {
+    return StreamBuilder<DocumentSnapshot>(
+      // Listen to the accumulated stats
+      stream:
+          FirebaseFirestore.instance
+              .collection('stats')
+              .doc('impact')
+              .snapshots(),
+      builder: (context, snapshot) {
+        double accumulatedWaste = 0.0;
+
+        if (snapshot.hasData && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          accumulatedWaste = (data['totalWasteKg'] as num?)?.toDouble() ?? 0.0;
+        }
+
+        // Calculation:
+        // 34 tonnes CH4 / 907 tonnes Waste = 0.0375 kg/kg
+        // 0.0375 kg / 0.717 (Density) ≈ 0.053 m³ volume
+        final double methanePrevented = accumulatedWaste * 0.053;
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2D3E2E), // Dark Green Background
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withValues(alpha: 0.3),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              const Text(
+                "Our Global Impact",
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  letterSpacing: 1.0,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // LEFT: WASTE COLLECTED
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          accumulatedWaste.toStringAsFixed(1),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          "kg",
+                          style: TextStyle(
+                            color: Colors.greenAccent,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          "Total Waste\nCollected",
+                          style: TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(height: 2, width: 40, color: Colors.white30),
+                      ],
+                    ),
+                  ),
+
+                  // CENTER: EARTH ICON
+                  Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withValues(alpha: 0.4),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          height: 90,
+                          width: 90,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white12, width: 1),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.public,
+                          size: 80,
+                          color: Colors.lightBlueAccent,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // RIGHT: METHANE PREVENTED (Label Changed)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          methanePrevented.toStringAsFixed(3),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          "m³",
+                          style: TextStyle(
+                            color: Colors.orangeAccent,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        const Text(
+                          "Methane Gas\nPrevented",
+                          textAlign: TextAlign.right,
+                          style: TextStyle(color: Colors.white60, fontSize: 11),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(height: 2, width: 40, color: Colors.white30),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // [UPDATED] Centered Footnote
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center, // Center the Row
+                  children: [
+                    const Icon(
+                      Icons.info_outline,
+                      color: Colors.white54,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        "1 kg waste recycled ≈ 0.053 m³ Methane prevented",
+                        textAlign: TextAlign.center, // Center the Text
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
