@@ -15,9 +15,10 @@ class MerchantSettingsScreen extends StatefulWidget {
 class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
   final _descController = TextEditingController();
   final _phoneController = TextEditingController();
-  // ✅ NEW: Controller for Delivery Fee
+  final _deliveryTimeController = TextEditingController();
   final _deliveryFeeController = TextEditingController();
 
   // Image
@@ -43,7 +44,10 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
 
   Future<void> _loadCurrentData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     try {
       final doc =
@@ -51,26 +55,46 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
               .collection('merchants')
               .doc(user.uid)
               .get();
+
       if (doc.exists && mounted) {
         final data = doc.data()!;
         setState(() {
           _nameController.text = data['name'] ?? data['shopName'] ?? '';
-          _descController.text =
-              data['description'] ?? data['shopAddress'] ?? '';
+
+          // Fix: Ensure address is loaded into address controller
+          _addressController.text =
+              data['address'] ?? data['shopAddress'] ?? '';
+
+          _descController.text = data['description'] ?? '';
           _phoneController.text = data['phone'] ?? '';
 
-          // ✅ LOAD FEE (Default to 3.00 if missing)
-          double fee = (data['deliveryFee'] ?? 3.00).toDouble();
-          _deliveryFeeController.text = fee.toStringAsFixed(2);
+          // ✅ Fix: Handle potential number types safely
+          var fee = data['deliveryFee'];
+          if (fee is int) {
+            _deliveryFeeController.text = fee.toDouble().toStringAsFixed(2);
+          } else if (fee is double) {
+            _deliveryFeeController.text = fee.toStringAsFixed(2);
+          } else {
+            _deliveryFeeController.text = "3.00"; // Default
+          }
 
+          _deliveryTimeController.text = data['deliveryTime'] ?? '25 mins';
           _currentBase64Image = data['imageUrl'];
-          _selectedCategories = List<String>.from(data['categories'] ?? []);
+
+          if (data['categories'] != null) {
+            _selectedCategories = List<String>.from(data['categories']);
+          } else {
+            _selectedCategories = [];
+          }
+
           _isLoading = false;
         });
       } else {
+        // Document doesn't exist yet, just stop loading
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
+      debugPrint("Error loading settings: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -90,6 +114,8 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Allow saving without image if you want, or keep strict validation
     if (_currentBase64Image == null || _currentBase64Image!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("⚠️ Shop image is required!")),
@@ -101,21 +127,23 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     try {
-      // ✅ Parse Fee safely
       double deliveryFee = double.tryParse(_deliveryFeeController.text) ?? 3.00;
 
       await FirebaseFirestore.instance
           .collection('merchants')
           .doc(user!.uid)
-          .update({
+          .set({
+            // Using set with merge: true is safer if doc might not exist
             'name': _nameController.text.trim(),
+            'address': _addressController.text.trim(), // ✅ Save Address
             'description': _descController.text.trim(),
             'phone': _phoneController.text.trim(),
             'imageUrl': _currentBase64Image,
             'categories': _selectedCategories,
-            'deliveryFee': deliveryFee, // ✅ SAVE FEE TO DB
+            'deliveryFee': deliveryFee,
+            'deliveryTime': _deliveryTimeController.text.trim(),
             'updatedAt': FieldValue.serverTimestamp(),
-          });
+          }, SetOptions(merge: true));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,10 +152,11 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -196,18 +225,20 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                         validator: (v) => v!.isEmpty ? "Required" : null,
                       ),
                       const SizedBox(height: 16),
+
+                      // ✅ Added Address Field back
                       TextFormField(
-                        controller: _descController,
+                        controller: _addressController,
                         decoration: const InputDecoration(
-                          labelText: "Description / Address",
+                          labelText: "Shop Address",
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.description),
+                          prefixIcon: Icon(Icons.location_on),
                         ),
                         maxLines: 2,
+                        validator: (v) => v!.isEmpty ? "Required" : null,
                       ),
                       const SizedBox(height: 16),
 
-                      // ✅ NEW: Delivery Fee Input
                       TextFormField(
                         controller: _deliveryFeeController,
                         keyboardType: const TextInputType.numberWithOptions(
@@ -235,6 +266,17 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                           labelText: "Phone Number",
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.phone),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                      // ✅ Ensure this is wrapped in a way it doesn't error if expanded isn't needed
+                      TextFormField(
+                        controller: _deliveryTimeController,
+                        decoration: const InputDecoration(
+                          labelText: "Est. Time",
+                          border: OutlineInputBorder(),
+                          hintText: "e.g. 30 mins",
                         ),
                       ),
 

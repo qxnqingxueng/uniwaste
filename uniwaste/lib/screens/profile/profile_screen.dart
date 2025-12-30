@@ -12,6 +12,8 @@ import 'package:uniwaste/screens/profile/activity_screen.dart';
 import 'package:uniwaste/screens/profile/merchant_registration_screen.dart';
 import 'package:uniwaste/screens/merchant/dashboard/merchant_dashboard_screen.dart';
 import 'package:uniwaste/screens/admin/admin_report_screen.dart';
+// ✅ Added this import so the new navigation works
+import 'package:uniwaste/screens/profile/address_book_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -33,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _address = '';
   int _points = 0;
   String _role = 'student'; // Default role
-  
+
   // ✅ NEW FIELD: Reputation Score
   double _reputationScore = 100.0;
 
@@ -96,7 +98,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         } else {
           _reputationScore = 100.0; // Default if missing
         }
-
       } else {
         // Create default doc if missing
         await docRef.set({
@@ -359,12 +360,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 20),
 
                 ListTile(
-                  leading: const Icon(Icons.admin_panel_settings, color: Colors.red),
+                  leading: const Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.red,
+                  ),
                   title: const Text("Admin Panel"),
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AdminReportScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const AdminReportScreen(),
+                      ),
                     );
                   },
                 ),
@@ -435,11 +441,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ✅ UPDATED BANNER: SHOW REPUTATION
   Widget _buildImpactBanner(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    
+
     // Color logic for score
     Color scoreColor = Colors.white;
-    if (_reputationScore < 50) scoreColor = Colors.redAccent;
-    else if (_reputationScore < 80) scoreColor = Colors.amberAccent;
+    if (_reputationScore < 50) {
+      scoreColor = Colors.redAccent;
+    } else if (_reputationScore < 80)
+      scoreColor = Colors.amberAccent;
 
     return SizedBox(
       width: width * 0.88,
@@ -481,14 +489,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               '“Every meal saved is one less in the bin.”',
               style: TextStyle(color: Colors.white, fontSize: 12),
             ),
-            
+
             // ✅ REPUTATION SECTION
             const SizedBox(height: 16),
             Divider(color: Colors.white.withOpacity(0.3), thickness: 1),
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.shield_outlined, color: Colors.white, size: 20),
+                const Icon(
+                  Icons.shield_outlined,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   "Reputation: ",
@@ -497,9 +509,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   _reputationScore.toStringAsFixed(1),
                   style: TextStyle(
-                    color: scoreColor, 
-                    fontWeight: FontWeight.bold, 
-                    fontSize: 16
+                    color: scoreColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
                 const Text(
@@ -798,38 +810,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // ✅ UPDATED ADDRESS DIALOG LOGIC
   Future<void> _showAddressDialog() async {
-    await showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return SimpleDialog(
-          title: const Text('Select Block'),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          children: [
-            for (final block in [
-              'Block A',
-              'Block B',
-              'Block C',
-              'Block D',
-              'Block E',
-            ])
-              SimpleDialogOption(
-                onPressed: () async {
-                  Navigator.of(dialogContext).pop();
-                  final confirmed = await _showConfirmChangeDialog('address');
-                  if (confirmed == true) {
-                    setState(() => _address = block);
-                    _updateField('address', block);
-                  }
-                },
-                child: Text(block),
-              ),
-          ],
-        );
-      },
+    // Navigate to the full Address Book
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddressBookScreen()),
     );
+    // Reload profile when back to reflect changes if default changed
+    _loadUserProfile();
   }
 
   void _showLogoutDialog(BuildContext context) {

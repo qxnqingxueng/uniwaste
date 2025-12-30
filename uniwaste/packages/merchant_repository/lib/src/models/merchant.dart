@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Merchant {
   final String id;
   final String name;
@@ -8,6 +6,7 @@ class Merchant {
   final double rating;
   final List<String> categories;
   final double deliveryFee;
+  final String deliveryTime;
 
   const Merchant({
     required this.id,
@@ -16,7 +15,8 @@ class Merchant {
     required this.imageUrl,
     required this.rating,
     required this.categories,
-    this.deliveryFee = 3.00,
+    required this.deliveryFee,
+    required this.deliveryTime,
   });
 
   /// 1. READ: Create Merchant from Firestore Data
@@ -28,7 +28,8 @@ class Merchant {
       imageUrl: data['imageUrl'] ?? '',
       rating: (data['rating'] ?? 0.0).toDouble(),
       categories: List<String>.from(data['categories'] ?? []),
-      deliveryFee: (data['deliveryFee'] ?? 3.00).toDouble(),
+      deliveryFee: (data['deliveryFee'] ?? 0.0).toDouble(),
+      deliveryTime: data['deliveryTime'] ?? '',
     );
   }
 
@@ -53,5 +54,6 @@ class Merchant {
     rating: 0,
     categories: [],
     deliveryFee: 0,
+    deliveryTime: '',
   );
 }
