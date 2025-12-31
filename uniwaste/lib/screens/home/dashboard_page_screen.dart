@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert'; // ✅ ADDED (for base64Decode)
+import 'dart:typed_data'; // ✅ ADDED (for Uint8List)
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -6,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/waste-to-resources/waste_bin_map.dart';
-import 'package:uniwaste/screens/profile/voucher_screen.dart';
+// import 'package:uniwaste/screens/profile/voucher_screen.dart';
 import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
 
 class DashboardPage extends StatefulWidget {
@@ -120,121 +122,9 @@ class _DashboardPageState extends State<DashboardPage> {
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 const SizedBox(height: 24),
-                // --- MEAL POINTS CARD ---
-                StreamBuilder<DocumentSnapshot>(
-                  stream:
-                      FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(userId)
-                          .snapshots(),
-                  builder: (context, snapshot) {
-                    // Default to 0 if loading or error
-                    int points = 0;
 
-                    if (snapshot.hasData && snapshot.data!.exists) {
-                      final data =
-                          snapshot.data!.data() as Map<String, dynamic>;
-                      // Safely parse points
-                      points = (data['points'] ?? 0).toInt();
-                    }
-
-                    return Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6B8E23), Color(0xFFA1BC98)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF6B8E23,
-                            ).withValues(alpha: 0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "My Meal Points",
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  //DYNAMIC POINTS TEXT
-                                  Text(
-                                    "$points",
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.emoji_events,
-                                  color: Colors.white,
-                                  size: 30,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const VoucherScreen(),
-                                  ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: const Color(0xFF6B8E23),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                elevation: 0,
-                              ),
-                              child: const Text(
-                                "View Rewards",
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                // ✅ CHANGED: LEADERBOARD CARD (Top 3 + Bottom Sheet Top 50)
+                _buildLeaderboardCard(userId),
 
                 const SizedBox(height: 30),
 
@@ -365,62 +255,417 @@ class _DashboardPageState extends State<DashboardPage> {
 
                 const SizedBox(height: 30),
 
-                // --- DAILY TIP ---
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F5E9),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFA5D6A7)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.lightbulb_outline,
-                          color: Color(0xFF43A047),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Did you know?",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E7D32),
-                                fontSize: 14,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "Recycling food waste prevents methane release! One bin helps stop 0.27 m³ of harmful gas.",
-                              style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 100),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  // =========================================================
+  // ✅ NEW: LEADERBOARD CARD + SHEET (ONLY ADDED CODE)
+  // =========================================================
+
+  Widget _buildLeaderboardCard(String userId) {
+    final top3Query = FirebaseFirestore.instance
+        .collection('users')
+        .orderBy('points', descending: true)
+        .limit(3);
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: top3Query.snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return _leaderboardCardShell(
+            title: "Leaderboard",
+            child: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    "Loading rankings...",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                ],
+              ),
+            ),
+            onViewAll: () => _showFullLeaderboardSheet(context, userId),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return _leaderboardCardShell(
+          title: "Leaderboard",
+          onViewAll: () => _showFullLeaderboardSheet(context, userId),
+          child: Column(
+            children: [
+              if (docs.isEmpty)
+                const Text(
+                  "No users found yet.",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              for (int i = 0; i < docs.length; i++)
+                _leaderboardRow(
+                  rank: i + 1,
+                  doc: docs[i],
+                  currentUserId: userId,
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _leaderboardCardShell({
+    required String title,
+    required Widget child,
+    required VoidCallback onViewAll,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF6B8E23), Color(0xFFA1BC98)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6B8E23).withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.leaderboard,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // content
+          child,
+
+          const SizedBox(height: 16),
+
+          // button (opens bottom sheet)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onViewAll,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF6B8E23),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                elevation: 0,
+              ),
+              child: const Text(
+                "View Full Ranking",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _leaderboardRow({
+    required int rank,
+    required QueryDocumentSnapshot doc,
+    required String currentUserId,
+  }) {
+    final data = doc.data() as Map<String, dynamic>;
+    final String uid = doc.id;
+
+    final String name =
+        (data['name'] ?? data['username'] ?? data['fullName'] ?? 'User')
+            .toString();
+
+    final int points = (data['points'] ?? 0).toInt();
+    final String? photoBase64 = data['photoBase64'] as String?;
+
+    final bool isMe = (uid == currentUserId);
+
+    String badge = "$rank";
+    if (rank == 1) badge = "🥇";
+    if (rank == 2) badge = "🥈";
+    if (rank == 3) badge = "🥉";
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color:
+            isMe
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.white.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+        border:
+            isMe ? Border.all(color: Colors.white.withValues(alpha: 0.35)) : null,
+      ),
+      child: Row(
+        children: [
+          Text(
+            badge,
+            style: const TextStyle(fontSize: 18, color: Colors.white),
+          ),
+          const SizedBox(width: 10),
+          _buildAvatar(photoBase64, name),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              isMe ? "$name (You)" : name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            "$points pts",
+            style: const TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String? photoBase64, String name) {
+    Uint8List? bytes;
+
+    if (photoBase64 != null && photoBase64.isNotEmpty) {
+      try {
+        bytes = base64Decode(photoBase64);
+      } catch (_) {
+        bytes = null;
+      }
+    }
+
+    if (bytes != null) {
+      return CircleAvatar(
+        radius: 16,
+        backgroundImage: MemoryImage(bytes),
+        backgroundColor: Colors.white.withValues(alpha: 0.25),
+      );
+    }
+
+    final initial =
+        name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : "U";
+
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: Colors.white.withValues(alpha: 0.25),
+      child: Text(
+        initial,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  void _showFullLeaderboardSheet(BuildContext context, String currentUserId) {
+    final top50Query = FirebaseFirestore.instance
+        .collection('users')
+        .orderBy('points', descending: true)
+        .limit(50);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.78,
+          minChildSize: 0.45,
+          maxChildSize: 0.92,
+          builder: (context, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  Container(
+                    height: 4,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    "Top 50 Leaderboard",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: top50Query.snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+
+                        final docs = snapshot.data!.docs;
+                        if (docs.isEmpty) {
+                          return const Center(
+                            child: Text("No users found."),
+                          );
+                        }
+
+                        return ListView.builder(
+                          controller: scrollController,
+                          itemCount: docs.length,
+                          itemBuilder: (context, index) {
+                            final doc = docs[index];
+                            final data = doc.data() as Map<String, dynamic>;
+
+                            final String uid = doc.id;
+                            final bool isMe = uid == currentUserId;
+
+                            final String name =
+                                (data['name'] ??
+                                        data['username'] ??
+                                        data['fullName'] ??
+                                        'User')
+                                    .toString();
+
+                            final int points = (data['points'] ?? 0).toInt();
+                            final String? photoBase64 =
+                                data['photoBase64'] as String?;
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 6,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color:
+                                    isMe
+                                        ? const Color(0xFF6B8E23).withValues(
+                                          alpha: 0.12,
+                                        )
+                                        : Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(14),
+                                border: isMe
+                                    ? Border.all(
+                                        color: const Color(0xFF6B8E23).withValues(
+                                          alpha: 0.35,
+                                        ),
+                                      )
+                                    : Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 34,
+                                    child: Text(
+                                      "${index + 1}",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  _buildAvatar(photoBase64, name),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      isMe ? "$name (You)" : name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    "$points",
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF6B8E23),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Text(
+                                    "pts",
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

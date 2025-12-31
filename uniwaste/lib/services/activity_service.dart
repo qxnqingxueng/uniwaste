@@ -1,4 +1,3 @@
-// lib/services/activity_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
@@ -62,7 +61,7 @@ class ActivityService {
     });
 
     // also bump user points here
-    await _addPointsToUser(userId, points);   // 🔥 FIXED: use existing helper
+    await _addPointsToUser(userId, points);  
 
     return docRef.id;
   }
