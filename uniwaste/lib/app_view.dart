@@ -4,12 +4,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/home/home_screen.dart';
 import 'package:uniwaste/screens/auth/auth_wrapper.dart';
+import 'package:uniwaste/screens/admin/admin_report_screen.dart'; 
 import 'package:uniwaste/services/notification_service.dart';
 import 'package:uniwaste/screens/waste-to-resources/company/waste_collection_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
-import 'package:uniwaste/blocs/notification_bloc/notification_bloc.dart';
-import 'package:user_repository/user_repository.dart';
-import 'package:uniwaste/screens/admin/admin_report_screen.dart';
 
 class MyAppView extends StatefulWidget {
   const MyAppView({super.key});
@@ -63,31 +61,22 @@ class _MyAppViewState extends State<MyAppView> {
       home: BlocBuilder<AuthenticationBloc, AuthenticationState>(
         builder: (context, state) {
           if (state.status == AuthenticationStatus.authenticated) {
+            
+            // ✅ Check Role Instead of Email (Admin Check)
+            if (state.user?.isAdmin == true) {
+               return const AdminReportScreen();
+            }
+
+            // Normal User - Wrapped with Chat Notifications
             return ChatNotificationsWrapper(
               userId: state.user!.userId,
               child: const HomeScreen(),
             );
+            
           } else {
-            // User logged out -> Stop listening
-            context.read<NotificationBloc>().add(StopNotificationListener());
+            return const AuthWrapper();
           }
         },
-        child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
-          builder: (context, state) {
-              if (state.status == AuthenticationStatus.authenticated) {
-                
-                // ✅ Check Role Instead of Email
-                if (state.user?.isAdmin == true) {
-                  return const AdminReportScreen();
-                }
-
-                return const HomeScreen();
-
-              } else {
-                return const AuthWrapper();
-              }
-          }
-        ),
       ),
     );
   }
