@@ -165,7 +165,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     // convert to Base64 text
     final base64Str = base64Encode(bytes);
-
     // save into Firestore
     await _updateField('photoBase64', base64Str);
   }

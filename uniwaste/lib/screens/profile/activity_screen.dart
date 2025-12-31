@@ -1,4 +1,3 @@
-// lib/screens/profile/activity_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uniwaste/services/activity_service.dart';

@@ -43,8 +43,6 @@ class FirebaseUserRepo implements UserRepository {
       UserCredential user = await _firebaseAuth.createUserWithEmailAndPassword(
           email: myUser.email, password: password);
 
-      // --- FIX IS HERE ---
-      // Instead of myUser.userId = ..., we create a new copy with the ID
       myUser = myUser.copyWith(userId: user.user!.uid);
 
       return myUser;
