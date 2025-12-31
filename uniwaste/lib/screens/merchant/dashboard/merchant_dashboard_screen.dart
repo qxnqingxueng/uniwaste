@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uniwaste/screens/merchant/analytics/sales_report_screen.dart';
 import 'package:uniwaste/screens/merchant/dashboard/merchant_orders_screen.dart';
 import 'package:uniwaste/screens/merchant/menu/merchant_menu_screen.dart';
@@ -48,12 +49,6 @@ class MerchantDashboardScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              "Welcome back,\n$merchantName",
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 24),
-
             // 1. INCOMING ORDERS (All logic is here now)
             _DashboardCard(
               title: "Incoming Orders",

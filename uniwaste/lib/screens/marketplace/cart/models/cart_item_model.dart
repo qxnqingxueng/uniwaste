@@ -23,10 +23,9 @@ class CartItemModel extends Equatable {
     this.isSelected = true,
   });
 
-  // ✅ 1. FIX CHECKOUT ERROR: Add a getter so .title works
   String get title => name;
 
-  // ✅ 2. FIX ORDER_MODEL ERROR: Add toMap method
+  // Helper to convert to Map (useful for storage later)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -56,7 +55,6 @@ class CartItemModel extends Equatable {
     );
   }
 
-  // ✅ 3. FIX STATE UPDATES: CopyWith method
   CartItemModel copyWith({
     String? id,
     String? name,

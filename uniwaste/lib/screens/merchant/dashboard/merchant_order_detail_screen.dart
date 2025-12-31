@@ -12,7 +12,6 @@ class MerchantOrderDetailScreen extends StatelessWidget {
     required this.data,
   });
 
-  // ✅ RESTORED LOGIC: Status Updates with Double Write Sync
   Future<void> _updateStatus(BuildContext context, String newStatus) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -57,17 +56,25 @@ class MerchantOrderDetailScreen extends StatelessWidget {
     final method = data['method'] ?? 'Delivery';
     final status = (data['status'] ?? 'pending').toString().toLowerCase();
     final total = (data['totalAmount'] ?? 0).toDouble();
-    final address = data['shippingAddress'] ?? 'N/A';
-    final customerName = data['userName'] ?? 'Student';
 
-    // ✅ BUTTON LOGIC RESTORED
+    // --- CUSTOMER INFO SYNC ---
+    final customerName = data['userName'] ?? 'Unknown Guest';
+    final customerEmail = data['userEmail'] ?? 'No email provided';
+
+    // Address Logic: Default to "None" if empty or placeholder
+    String rawAddress = data['shippingAddress'] ?? '';
+    if (rawAddress.isEmpty || rawAddress == "Please select an address") {
+      rawAddress = "None";
+    }
+    final shippingAddress = rawAddress;
+
+    // --- BUTTON LOGIC ---
     String btnText = "Completed";
     String nextStatus = "";
     Color btnColor = Colors.grey;
     bool showButton = true;
 
     if (method == 'Pick Up') {
-      // Flow: Pending -> Preparing -> Ready -> Completed
       if (status == 'pending' || status == 'paid') {
         btnText = "Start Preparing";
         nextStatus = "preparing";
@@ -84,7 +91,6 @@ class MerchantOrderDetailScreen extends StatelessWidget {
         showButton = false;
       }
     } else {
-      // Flow: Pending -> Preparing -> On The Way -> Completed
       if (status == 'pending' || status == 'paid') {
         btnText = "Start Preparing";
         nextStatus = "preparing";
@@ -140,22 +146,71 @@ class MerchantOrderDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // --- CUSTOMER INFO ---
-            const Text("Customer", style: TextStyle(color: Colors.grey)),
-            Text(
-              customerName,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            if (method == 'Delivery') ...[
-              const Text(
-                "Delivery Address",
-                style: TextStyle(color: Colors.grey),
+            // --- CUSTOMER INFO CARD ---
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[100]!),
               ),
-              Text(address, style: const TextStyle(fontSize: 16)),
-              const SizedBox(height: 20),
-            ],
+              child: Column(
+                children: [
+                  // Name
+                  Row(
+                    children: [
+                      const Icon(Icons.person, color: Colors.blue),
+                      const SizedBox(width: 8),
+                      Text(
+                        customerName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 20),
 
+                  // Email
+                  Row(
+                    children: [
+                      const Icon(Icons.email, size: 18, color: Colors.grey),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          customerEmail,
+                          style: const TextStyle(fontSize: 15),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Address (Synced)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        size: 18,
+                        color: Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          shippingAddress, // ✅ Displays "None" or real address
+                          style: const TextStyle(fontSize: 15),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
             const Divider(),
 
             // --- ITEMS LIST ---

@@ -26,7 +26,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     "Vegetarian",
     "No Pork",
     "Cheap Eats",
-    "Free Delivery",
   ];
 
   // Colors from your Current version
@@ -37,7 +36,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Load real data from BLoC
+    // start loading data asap the screen opens
     context.read<MerchantBloc>().add(LoadMerchants());
   }
 
@@ -53,8 +52,9 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
           user == null
               ? null
               : Padding(
-                padding: const EdgeInsets.only(bottom: 100.0),
+                padding: const EdgeInsets.only(bottom: 20.0),
                 child: StreamBuilder<QuerySnapshot>(
+                  //Listen to 'orders' collection for THIS user
                   stream:
                       FirebaseFirestore.instance
                           .collection('orders')
@@ -134,12 +134,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
               ),
             ),
             centerTitle: false,
-            actions: [
-              IconButton(
-                icon: Icon(Icons.notifications_outlined, color: darkGreen),
-                onPressed: () {},
-              ),
-            ],
+
             // Search Bar inside flexible space
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(60),
@@ -235,19 +230,17 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 // Apply Filtering Logic on Real Data
                 final merchants =
                     state.merchants.where((m) {
+                      //Search Text Match
                       final matchesSearch = m.name.toLowerCase().contains(
                         _searchController.text.toLowerCase(),
                       );
-
+                      // Category Match
                       bool matchesCategory = true;
                       if (_selectedCategory != "All") {
-                        // Since real data might not have 'Free Delivery' flag yet,
-                        // we only check categories list if it's not a special tag.
-                        if (_selectedCategory != "Free Delivery") {
-                          matchesCategory = m.categories.contains(
-                            _selectedCategory,
-                          );
-                        }
+                        // For simplicity, assume categories are stored as a list of strings
+                        matchesCategory = m.categories.contains(
+                          _selectedCategory,
+                        );
                       }
 
                       return matchesSearch &&
@@ -298,7 +291,6 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   }
 }
 
-// --- HELPER WIDGET: CARD (From Current Code to handle Base64) ---
 class _FancyMerchantCard extends StatelessWidget {
   final Merchant merchant;
   final VoidCallback onTap;
@@ -307,28 +299,17 @@ class _FancyMerchantCard extends StatelessWidget {
 
   Widget _buildImage(String data) {
     if (data.isEmpty) {
-      return Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.store, size: 50, color: Colors.grey),
-      );
+      return Container(color: Colors.grey[200], child: const Icon(Icons.store));
     }
     if (data.startsWith('http')) {
-      return Image.network(
-        data,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
-      );
+      return Image.network(data, fit: BoxFit.cover);
     } else {
       try {
-        return Image.memory(
-          base64Decode(data),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
-        );
+        return Image.memory(base64Decode(data), fit: BoxFit.cover);
       } catch (e) {
         return Container(
           color: Colors.grey[200],
-          child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+          child: const Icon(Icons.broken_image),
         );
       }
     }
@@ -382,19 +363,27 @@ class _FancyMerchantCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+
+                    // ✅ UPDATED: Shows Category Tags instead of "Cafe" or Description
                     Text(
-                      merchant.description.isNotEmpty
-                          ? merchant.description
-                          : "No description available",
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      merchant.categories.isNotEmpty
+                          ? merchant.categories.join(" • ")
+                          : "Restaurant",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+
+                    const SizedBox(height: 10),
                     Row(
                       children: [
                         const Icon(Icons.star, color: Colors.orange, size: 14),
+                        const SizedBox(width: 4),
                         Text(
                           merchant.rating.toString(),
                           style: const TextStyle(
@@ -403,10 +392,11 @@ class _FancyMerchantCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-
-                        // ✅ FIXED: Display Dynamic Delivery Fee
                         Text(
-                          "RM ${merchant.deliveryFee.toStringAsFixed(2)} Delivery",
+                          // Shows dynamic fee or Free
+                          merchant.deliveryFee == 0
+                              ? "Free Delivery"
+                              : "RM ${merchant.deliveryFee.toStringAsFixed(2)} Delivery",
                           style: const TextStyle(
                             color: Colors.grey,
                             fontSize: 12,
