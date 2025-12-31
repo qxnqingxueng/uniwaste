@@ -43,7 +43,15 @@ class FirebaseUserRepo implements UserRepository {
       UserCredential user = await _firebaseAuth.createUserWithEmailAndPassword(
           email: myUser.email, password: password);
 
-      myUser = myUser.copyWith(userId: user.user!.uid);
+      String assignedRole = 'user';
+      if (myUser.email == 'admin@gmail.com') {
+        assignedRole = 'admin';
+      }
+
+      myUser = myUser.copyWith(
+        userId: user.user!.uid,
+        role: assignedRole, 
+      );
 
       return myUser;
     } catch (e) {
