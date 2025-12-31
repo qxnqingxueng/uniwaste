@@ -45,7 +45,11 @@ class _CompanyRegistrationScreenState extends State<CompanyRegistrationScreen> {
 
       // 2. Update the User's Role
       await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'role': 'company'},
+        {
+          'role': 'company',
+          'name':
+              _companyNameController.text.trim(), // Update name to Company Name
+        },
       );
 
       if (mounted) {
