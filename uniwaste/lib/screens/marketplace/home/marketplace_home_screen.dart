@@ -19,6 +19,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = "All";
 
+  // Combined Categories from both versions
   final List<String> _categories = [
     "All",
     "Halal",
@@ -27,7 +28,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     "Cheap Eats",
   ];
 
-  // ✅ NEW PALETTE
+  // Colors from your Current version
   final Color bgCream = const Color(0xFFF1F3E0);
   final Color darkGreen = const Color(0xFF778873);
   final Color midGreen = const Color(0xFFA1BC98);
@@ -35,6 +36,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   @override
   void initState() {
     super.initState();
+    // start loading data asap the screen opens
     context.read<MerchantBloc>().add(LoadMerchants());
   }
 
@@ -43,14 +45,16 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      backgroundColor: bgCream, // #F1F3E0
-      // ✅ TRACKER BUTTON
+      backgroundColor: bgCream,
+
+      // --- TRACKER BUTTON (From Current Code) ---
       floatingActionButton:
           user == null
               ? null
               : Padding(
-                padding: const EdgeInsets.only(bottom: 100.0),
+                padding: const EdgeInsets.only(bottom: 20.0),
                 child: StreamBuilder<QuerySnapshot>(
+                  //Listen to 'orders' collection for THIS user
                   stream:
                       FirebaseFirestore.instance
                           .collection('orders')
@@ -60,8 +64,9 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                   builder: (context, snapshot) {
                     if (snapshot.hasError ||
                         !snapshot.hasData ||
-                        snapshot.data!.docs.isEmpty)
+                        snapshot.data!.docs.isEmpty) {
                       return const SizedBox.shrink();
+                    }
 
                     DocumentSnapshot? activeOrder;
                     try {
@@ -88,7 +93,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                                   ),
                             ),
                           ),
-                      backgroundColor: darkGreen, // #778873
+                      backgroundColor: darkGreen,
                       elevation: 10,
                       icon: const Icon(
                         Icons.delivery_dining,
@@ -109,12 +114,12 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // 1. App Bar
+          // --- 1. FANCY APP BAR (From Incoming Code) ---
           SliverAppBar(
             expandedHeight: 120.0,
             floating: true,
             pinned: true,
-            backgroundColor: bgCream, // Matches background
+            backgroundColor: bgCream,
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.arrow_back_ios, color: darkGreen, size: 20),
@@ -128,6 +133,9 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 fontSize: 24,
               ),
             ),
+            centerTitle: false,
+
+            // Search Bar inside flexible space
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(60),
               child: Container(
@@ -135,12 +143,14 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 color: bgCream,
                 child: TextField(
                   controller: _searchController,
+                  // Rebuild UI when typing to filter the list
                   onChanged: (v) => setState(() {}),
                   decoration: InputDecoration(
                     hintText: 'Search for food...',
                     prefixIcon: Icon(Icons.search, color: darkGreen),
                     filled: true,
                     fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -151,41 +161,62 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
             ),
           ),
 
-          // 2. Category Filter
+          // --- 2. STICKY CATEGORY LIST (From Incoming Code) ---
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: SizedBox(
                 height: 40,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final cat = _categories[index];
-                    final isSelected = _selectedCategory == cat;
-                    return ActionChip(
-                      label: Text(cat),
-                      backgroundColor:
-                          isSelected
-                              ? midGreen
-                              : Colors.white, // #A1BC98 for active
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : darkGreen,
-                      ),
-                      onPressed: () => setState(() => _selectedCategory = cat),
-                    );
+                child: ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                      colors: [Colors.white, Colors.white, Colors.transparent],
+                      stops: [0.0, 0.9, 1.0],
+                    ).createShader(bounds);
                   },
+                  blendMode: BlendMode.dstIn,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final cat = _categories[index];
+                      final isSelected = _selectedCategory == cat;
+                      return ActionChip(
+                        label: Text(cat),
+                        backgroundColor: isSelected ? midGreen : Colors.white,
+                        labelStyle: TextStyle(
+                          color: isSelected ? Colors.white : darkGreen,
+                          fontWeight:
+                              isSelected ? FontWeight.bold : FontWeight.normal,
+                        ),
+                        side: BorderSide(
+                          color: isSelected ? midGreen : Colors.grey.shade300,
+                        ),
+                        shape: const StadiumBorder(),
+                        onPressed:
+                            () => setState(() {
+                              if (_selectedCategory == cat && cat != "All") {
+                                _selectedCategory = "All";
+                              } else {
+                                _selectedCategory = cat;
+                              }
+                            }),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
           ),
 
-          // 3. Merchant List
+          // --- 3. MERCHANT LIST (From Current Code - Uses BLoC Data) ---
           BlocBuilder<MerchantBloc, MerchantState>(
             builder: (context, state) {
-              if (state is MerchantLoading)
+              if (state is MerchantLoading) {
                 return const SliverToBoxAdapter(
                   child: Center(
                     child: Padding(
@@ -194,27 +225,37 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                     ),
                   ),
                 );
+              }
               if (state is MerchantLoaded) {
+                // Apply Filtering Logic on Real Data
                 final merchants =
                     state.merchants.where((m) {
+                      //Search Text Match
                       final matchesSearch = m.name.toLowerCase().contains(
                         _searchController.text.toLowerCase(),
                       );
-                      bool matchesCategory =
-                          _selectedCategory == "All" ||
-                          m.categories.contains(_selectedCategory);
+                      // Category Match
+                      bool matchesCategory = true;
+                      if (_selectedCategory != "All") {
+                        // For simplicity, assume categories are stored as a list of strings
+                        matchesCategory = m.categories.contains(
+                          _selectedCategory,
+                        );
+                      }
+
                       return matchesSearch &&
                           matchesCategory &&
                           m.id.isNotEmpty;
                     }).toList();
 
-                if (merchants.isEmpty)
+                if (merchants.isEmpty) {
                   return const SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.all(30),
+                      padding: EdgeInsets.all(32),
                       child: Center(child: Text("No merchants found")),
                     ),
                   );
+                }
 
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -257,28 +298,18 @@ class _FancyMerchantCard extends StatelessWidget {
   const _FancyMerchantCard({required this.merchant, required this.onTap});
 
   Widget _buildImage(String data) {
-    if (data.isEmpty)
-      return Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.store, size: 50, color: Colors.grey),
-      );
+    if (data.isEmpty) {
+      return Container(color: Colors.grey[200], child: const Icon(Icons.store));
+    }
     if (data.startsWith('http')) {
-      return Image.network(
-        data,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
-      );
+      return Image.network(data, fit: BoxFit.cover);
     } else {
       try {
-        return Image.memory(
-          base64Decode(data),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
-        );
+        return Image.memory(base64Decode(data), fit: BoxFit.cover);
       } catch (e) {
         return Container(
           color: Colors.grey[200],
-          child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+          child: const Icon(Icons.broken_image),
         );
       }
     }
@@ -332,19 +363,27 @@ class _FancyMerchantCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
+
+                    // ✅ UPDATED: Shows Category Tags instead of "Cafe" or Description
                     Text(
-                      merchant.description.isNotEmpty
-                          ? merchant.description
-                          : "No description available",
-                      style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                      merchant.categories.isNotEmpty
+                          ? merchant.categories.join(" • ")
+                          : "Restaurant",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
+
+                    const SizedBox(height: 10),
                     Row(
                       children: [
                         const Icon(Icons.star, color: Colors.orange, size: 14),
+                        const SizedBox(width: 4),
                         Text(
                           merchant.rating.toString(),
                           style: const TextStyle(
@@ -353,9 +392,15 @@ class _FancyMerchantCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        const Text(
-                          "RM 3.00 Delivery",
-                          style: TextStyle(color: Colors.grey, fontSize: 12),
+                        Text(
+                          // Shows dynamic fee or Free
+                          merchant.deliveryFee == 0
+                              ? "Free Delivery"
+                              : "RM ${merchant.deliveryFee.toStringAsFixed(2)} Delivery",
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),

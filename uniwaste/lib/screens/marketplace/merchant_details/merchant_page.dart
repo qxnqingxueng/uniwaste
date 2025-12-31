@@ -1,29 +1,23 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-// ✅ IMPORTS FOR CART
+// ✅ Imports for Cart Logic
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
-import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
-
-// ✅ IMPORT SOCIAL CHAT
-import 'package:uniwaste/screens/social/chat_detail_screen.dart';
+import 'package:uniwaste/screens/marketplace/cart/cart_screen.dart';
 
 class MerchantPage extends StatefulWidget {
   final String merchantId;
   final String merchantName;
-  final String? imageUrl;
+  final String imageUrl;
 
   const MerchantPage({
     super.key,
     required this.merchantId,
     required this.merchantName,
-    this.imageUrl,
+    required this.imageUrl,
   });
 
   @override
@@ -31,417 +25,555 @@ class MerchantPage extends StatefulWidget {
 }
 
 class _MerchantPageState extends State<MerchantPage> {
-  bool _isChatLoading = false;
-
-  // --- Add to Cart Logic ---
-  void _addToCart(String itemId, String name, double price, String? imagePath) {
-    final cartItem = CartItemModel(
-      id: itemId,
-      name: name,
-      price: price,
-      quantity: 1,
-      imagePath: imagePath,
-      merchantId: widget.merchantId,
-      merchantName: widget.merchantName,
-      isSelected: true,
-    );
-    context.read<CartBloc>().add(AddItem(cartItem));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Added $name to cart"),
-        duration: const Duration(milliseconds: 500),
-      ),
-    );
-  }
-
-  // --- ✅ NEW CHAT LOGIC: Connects to Social Module ---
-  Future<void> _handleMerchantChat() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please login to chat")));
-      return;
-    }
-
-    setState(() => _isChatLoading = true);
-
-    try {
-      final chatsRef = FirebaseFirestore.instance.collection('chats');
-
-      // 1. Check if chat exists with this merchant
-      final querySnapshot =
-          await chatsRef.where('participants', arrayContains: user.uid).get();
-
-      String? existingChatId;
-      for (var doc in querySnapshot.docs) {
-        final List participants = doc['participants'];
-        if (participants.contains(widget.merchantId)) {
-          existingChatId = doc.id;
-          break;
-        }
-      }
-
-      String chatIdToUse = existingChatId ?? '';
-
-      // 2. If no chat exists, create a new one in 'chats' collection
-      if (existingChatId == null) {
-        final newChatDoc = await chatsRef.add({
-          'participants': [user.uid, widget.merchantId],
-          'participantNames': {
-            user.uid: user.displayName ?? 'Student',
-            widget.merchantId: widget.merchantName,
-          },
-          'lastMessage': 'Chat started',
-          'lastMessageTime': FieldValue.serverTimestamp(),
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        chatIdToUse = newChatDoc.id;
-      }
-
-      if (!mounted) return;
-
-      // 3. Navigate to your SOCIAL ChatDetailScreen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (_) => ChatDetailScreen(
-                chatId: chatIdToUse,
-                currentUserId: user.uid,
-                otherUserId: widget.merchantId,
-                otherUserName: widget.merchantName,
-                itemName:
-                    "General Inquiry", // Required by your ChatDetailScreen
-              ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error opening chat: $e")));
-    } finally {
-      if (mounted) setState(() => _isChatLoading = false);
-    }
-  }
+  // Theme Colors
+  final Color darkGreen = const Color(0xFF778873);
+  final Color bgCream = const Color(0xFFF1F3E0);
+  final Color midGreen = const Color(0xFFA1BC98);
 
   @override
   Widget build(BuildContext context) {
-    if (widget.merchantId.isEmpty)
-      return const Scaffold(
-        body: Center(child: Text("Error: Invalid Merchant ID")),
-      );
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          CustomScrollView(
-            slivers: [
-              SliverAppBar(
-                expandedHeight: 200,
-                pinned: true,
-                backgroundColor: Colors.orange,
-                flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    widget.merchantName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      shadows: [Shadow(color: Colors.black45, blurRadius: 5)],
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          // --- 1. HEADER (Unchanged) ---
+          SliverAppBar(
+            expandedHeight: 250.0,
+            floating: false,
+            pinned: true,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: CircleAvatar(
+                backgroundColor: Colors.white,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.black),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.shopping_bag_outlined,
+                          color: Colors.black,
+                        ),
+                        onPressed:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CartScreen(),
+                              ),
+                            ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: BlocBuilder<CartBloc, CartState>(
+                        builder: (context, state) {
+                          if (state is CartLoaded && state.items.isNotEmpty) {
+                            return Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Text(
+                                '${state.items.length}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            flexibleSpace: FlexibleSpaceBar(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildHeaderImage(widget.imageUrl),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.transparent,
+                        ],
+                      ),
                     ),
                   ),
-                  background:
-                      widget.imageUrl != null && widget.imageUrl!.isNotEmpty
-                          ? _buildSafeImage(widget.imageUrl!)
-                          : Container(
-                            color: Colors.orange[300],
-                            child: const Icon(
-                              Icons.store,
-                              size: 80,
-                              color: Colors.white,
-                            ),
-                          ),
-                ),
-                leading: Container(
-                  margin: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.black45,
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
+                ],
               ),
-
-              // Info & Chat Button
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Surplus Food Menu",
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            "Save food, save money!",
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      // ✅ UPDATED CHAT BUTTON
-                      OutlinedButton.icon(
-                        onPressed: _isChatLoading ? null : _handleMerchantChat,
-                        icon:
-                            _isChatLoading
-                                ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : const Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 18,
-                                ),
-                        label: const Text("Chat"),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.blue[700],
-                          side: BorderSide(color: Colors.blue[200]!),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Food List Stream
-              StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance
-                        .collection('merchants')
-                        .doc(widget.merchantId)
-                        .collection('items')
-                        .snapshots(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData)
-                    return const SliverToBoxAdapter(
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  final items = snapshot.data!.docs;
-                  if (items.isEmpty)
-                    return const SliverToBoxAdapter(
-                      child: Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(40),
-                          child: Text("No items available."),
-                        ),
-                      ),
-                    );
-
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final data = items[index].data() as Map<String, dynamic>;
-                      final itemId = items[index].id;
-                      final qty = data['quantity'] ?? 0;
-                      if (qty <= 0) return const SizedBox.shrink();
-
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(10),
-                          leading: SizedBox(
-                            width: 70,
-                            height: 70,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: _buildSafeImage(data['imagePath']),
-                            ),
-                          ),
-                          title: Text(
-                            data['name'] ?? 'Food',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            "RM ${(data['price'] ?? 0).toStringAsFixed(2)}",
-                          ),
-                          trailing: InkWell(
-                            onTap:
-                                () => _addToCart(
-                                  itemId,
-                                  data['name'],
-                                  (data['price'] ?? 0).toDouble(),
-                                  data['imagePath'],
-                                ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Text(
-                                "ADD",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }, childCount: items.length),
-                  );
-                },
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
-            ],
+            ),
           ),
 
-          // Sticky Cart Bar
-          BlocBuilder<CartBloc, CartState>(
-            builder: (context, state) {
-              if (state is CartLoaded && state.items.isNotEmpty) {
-                final totalCount = state.items.fold(
-                  0,
-                  (sum, item) => sum + item.quantity,
-                );
-                final totalPrice = state.items.fold(
-                  0.0,
-                  (sum, item) => sum + (item.price * item.quantity),
-                );
+          // --- 2. MERCHANT INFO SECTION ---
+          SliverToBoxAdapter(
+            child: StreamBuilder<DocumentSnapshot>(
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('merchants')
+                      .doc(widget.merchantId)
+                      .snapshots(),
+              builder: (context, merchantSnap) {
+                if (!merchantSnap.hasData) return const SizedBox.shrink();
 
-                return Positioned(
-                  bottom: 20,
-                  left: 16,
-                  right: 16,
-                  child: GestureDetector(
-                    onTap:
-                        () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CartScreen(),
-                          ),
-                        ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green[700],
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.green.withOpacity(0.4),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                final mData =
+                    merchantSnap.data!.data() as Map<String, dynamic>? ?? {};
+                final address = mData['address'] ?? 'Address not available';
+                final phone = mData['phone'] ?? '';
+                final List<dynamic> rawCats = mData['categories'] ?? [];
+                final categories = rawCats.map((e) => e.toString()).toList();
+
+                final double baseRating = (mData['rating'] ?? 4.0).toDouble();
+                final double deliveryFee =
+                    (mData['deliveryFee'] ?? 3.00).toDouble();
+                final String deliveryTime = mData['deliveryTime'] ?? '25 mins';
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('orders')
+                          .where('merchantId', isEqualTo: widget.merchantId)
+                          .snapshots(),
+                  builder: (context, orderSnap) {
+                    int orderCount =
+                        orderSnap.hasData ? orderSnap.data!.docs.length : 0;
+                    double bonusRating = (orderCount / 20).floor() * 0.1;
+                    double finalRating = baseRating + bonusRating;
+                    if (finalRating > 5.0) finalRating = 5.0;
+
+                    return Container(
+                      color: Colors.white,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
+                          Row(
                             children: [
-                              Text(
-                                "$totalCount items",
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
+                              Expanded(
+                                child: Text(
+                                  widget.merchantName,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
                                 ),
                               ),
-                              Text(
-                                "RM ${totalPrice.toStringAsFixed(2)}",
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Row(
-                            children: [
-                              Text(
-                                "View Cart",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(width: 8),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Colors.white,
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.verified,
+                                color: Colors.blue,
                                 size: 20,
                               ),
                             ],
                           ),
+                          const SizedBox(height: 8),
+                          Text(
+                            categories.join(" • ") +
+                                (categories.isNotEmpty
+                                    ? " • \$\$\$"
+                                    : "\$\$\$"),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.orange,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                finalRating.toStringAsFixed(1),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                " ($orderCount+)",
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "•",
+                                style: TextStyle(color: Colors.grey[400]),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                Icons.access_time,
+                                color: Colors.grey[600],
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                deliveryTime,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "•",
+                                style: TextStyle(color: Colors.grey[400]),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Delivery: RM ${deliveryFee.toStringAsFixed(2)}",
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          const Divider(height: 1),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on_outlined,
+                                color: Colors.grey[600],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  address,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (phone.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.phone_outlined,
+                                  color: Colors.grey[600],
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  phone,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
-                    ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+
+          // --- 3. SECTION HEADER ---
+          SliverToBoxAdapter(
+            child: Container(
+              color: const Color(0xFFF9FAFB),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              child: const Text(
+                "Menu",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+
+          // --- 4. MENU ITEMS LIST ---
+          StreamBuilder<QuerySnapshot>(
+            stream:
+                FirebaseFirestore.instance
+                    .collection('merchants')
+                    .doc(widget.merchantId)
+                    .collection('items')
+                    .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(50),
+                    child: Center(child: CircularProgressIndicator()),
                   ),
                 );
               }
-              return const SizedBox.shrink();
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 50),
+                    child: Center(child: Text("No items available.")),
+                  ),
+                );
+              }
+
+              final items =
+                  snapshot.data!.docs.where((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final qty = data['quantity'] ?? 0;
+                    final isAvailable = data['isAvailable'] ?? true;
+                    return qty > 0 && isAvailable == true;
+                  }).toList();
+
+              return SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final doc = items[index];
+                  final data = doc.data() as Map<String, dynamic>;
+                  return _buildMenuItem(context, doc.id, data);
+                }, childCount: items.length),
+              );
             },
           ),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
     );
   }
 
-  Widget _buildSafeImage(String? data) {
-    if (data == null || data.isEmpty)
-      return Container(
+  // --- Helper: Header Image ---
+  Widget _buildHeaderImage(String data) {
+    if (data.isEmpty) return Container(color: Colors.grey[300]);
+    if (data.startsWith('http')) return Image.network(data, fit: BoxFit.cover);
+    try {
+      return Image.memory(base64Decode(data), fit: BoxFit.cover);
+    } catch (e) {
+      return Container(color: Colors.grey[300]);
+    }
+  }
+
+  // --- Helper: FANCY MENU ITEM CARD ---
+  Widget _buildMenuItem(
+    BuildContext context,
+    String itemId,
+    Map<String, dynamic> data,
+  ) {
+    Widget itemImage;
+    if (data['imagePath'] != null && data['imagePath'].toString().isNotEmpty) {
+      try {
+        itemImage = Image.memory(
+          base64Decode(data['imagePath']),
+          fit: BoxFit.cover,
+        );
+      } catch (e) {
+        itemImage = Container(
+          color: Colors.grey[200],
+          child: const Icon(Icons.fastfood, color: Colors.grey),
+        );
+      }
+    } else {
+      itemImage = Container(
         color: Colors.grey[200],
         child: const Icon(Icons.fastfood, color: Colors.grey),
       );
-    try {
-      if (data.startsWith('http'))
-        return Image.network(
-          data,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.error),
-        );
-      return Image.memory(
-        base64Decode(data),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.error),
-      );
-    } catch (e) {
-      return Container(
-        color: Colors.grey[200],
-        child: const Icon(Icons.broken_image),
-      );
     }
+
+    // Logic: Quantity Left
+    final quantityLeft = data['quantity'] ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(width: 100, height: 100, child: itemImage),
+            ),
+
+            const SizedBox(width: 16),
+
+            // 2. Details Column
+            Expanded(
+              child: SizedBox(
+                height: 100, // Match image height to align bottom row
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Top Section: Name & Qty
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['name'] ?? 'Unknown Item',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+
+                        // ✅ FANCY QUANTITY BADGE
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department,
+                                size: 12,
+                                color: Colors.deepOrange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                "$quantityLeft left",
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.deepOrange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Bottom Section: Price & Add Button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "RM ${(data['price'] ?? 0).toStringAsFixed(2)}",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: darkGreen,
+                          ),
+                        ),
+
+                        // ✅ FANCY ADD BUTTON (Aligned neatly)
+                        InkWell(
+                          onTap: () {
+                            context.read<CartBloc>().add(
+                              AddItem(
+                                CartItemModel(
+                                  id: itemId,
+                                  name: data['name'] ?? 'Unknown',
+                                  price: (data['price'] ?? 0).toDouble(),
+                                  merchantId: widget.merchantId,
+                                  quantity: 1,
+                                  imagePath: data['imagePath'],
+                                ),
+                              ),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("${data['name']} added!"),
+                                duration: const Duration(milliseconds: 600),
+                                backgroundColor: darkGreen,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: darkGreen,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: darkGreen.withOpacity(0.3),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              "Add",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

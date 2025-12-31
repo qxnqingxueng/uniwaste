@@ -15,7 +15,6 @@ class CartLoaded extends CartState {
 
   const CartLoaded({required this.items});
 
-  // ✅ THIS WAS LIKELY MISSING OR RETURNING 0.0
   double get totalAmount {
     if (items.isEmpty) return 0.0;
     return items.fold(

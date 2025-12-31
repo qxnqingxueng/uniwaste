@@ -15,21 +15,24 @@ class MerchantSettingsScreen extends StatefulWidget {
 class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
   final _descController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _deliveryTimeController = TextEditingController();
+  final _deliveryFeeController = TextEditingController();
 
   // Image
   String? _currentBase64Image;
   final ImagePicker _picker = ImagePicker();
 
-  // ✅ CATEGORY LOGIC
+  // Category Logic
   final List<String> _allOptions = [
     'Halal',
     'Vegetarian',
     'No Pork',
     'Cheap Eats',
   ];
-  List<String> _selectedCategories = []; // Stores what the merchant picked
+  List<String> _selectedCategories = [];
 
   bool _isLoading = true;
 
@@ -41,7 +44,10 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
 
   Future<void> _loadCurrentData() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
 
     try {
       final doc =
@@ -49,24 +55,46 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
               .collection('merchants')
               .doc(user.uid)
               .get();
+
       if (doc.exists && mounted) {
         final data = doc.data()!;
         setState(() {
           _nameController.text = data['name'] ?? data['shopName'] ?? '';
-          _descController.text =
-              data['description'] ?? data['shopAddress'] ?? '';
+
+          // Fix: Ensure address is loaded into address controller
+          _addressController.text =
+              data['address'] ?? data['shopAddress'] ?? '';
+
+          _descController.text = data['description'] ?? '';
           _phoneController.text = data['phone'] ?? '';
+
+          // ✅ Fix: Handle potential number types safely
+          var fee = data['deliveryFee'];
+          if (fee is int) {
+            _deliveryFeeController.text = fee.toDouble().toStringAsFixed(2);
+          } else if (fee is double) {
+            _deliveryFeeController.text = fee.toStringAsFixed(2);
+          } else {
+            _deliveryFeeController.text = "3.00"; // Default
+          }
+
+          _deliveryTimeController.text = data['deliveryTime'] ?? '25 mins';
           _currentBase64Image = data['imageUrl'];
 
-          // ✅ Load saved categories
-          _selectedCategories = List<String>.from(data['categories'] ?? []);
+          if (data['categories'] != null) {
+            _selectedCategories = List<String>.from(data['categories']);
+          } else {
+            _selectedCategories = [];
+          }
 
           _isLoading = false;
         });
       } else {
+        // Document doesn't exist yet, just stop loading
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
+      debugPrint("Error loading settings: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -86,6 +114,8 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
 
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Allow saving without image if you want, or keep strict validation
     if (_currentBase64Image == null || _currentBase64Image!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("⚠️ Shop image is required!")),
@@ -97,32 +127,36 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     try {
+      double deliveryFee = double.tryParse(_deliveryFeeController.text) ?? 3.00;
+
       await FirebaseFirestore.instance
           .collection('merchants')
           .doc(user!.uid)
-          .update({
+          .set({
+            // Using set with merge: true is safer if doc might not exist
             'name': _nameController.text.trim(),
+            'address': _addressController.text.trim(), // ✅ Save Address
             'description': _descController.text.trim(),
             'phone': _phoneController.text.trim(),
             'imageUrl': _currentBase64Image,
-
-            // ✅ Save Categories
             'categories': _selectedCategories,
-
+            'deliveryFee': deliveryFee,
+            'deliveryTime': _deliveryTimeController.text.trim(),
             'updatedAt': FieldValue.serverTimestamp(),
-          });
+          }, SetOptions(merge: true));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ Details & Categories updated!")),
+          const SnackBar(content: Text("✅ Shop settings updated!")),
         );
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -191,15 +225,39 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                         validator: (v) => v!.isEmpty ? "Required" : null,
                       ),
                       const SizedBox(height: 16),
+
+                      // ✅ Added Address Field back
                       TextFormField(
-                        controller: _descController,
+                        controller: _addressController,
                         decoration: const InputDecoration(
-                          labelText: "Description / Address",
+                          labelText: "Shop Address",
                           border: OutlineInputBorder(),
-                          prefixIcon: Icon(Icons.description),
+                          prefixIcon: Icon(Icons.location_on),
                         ),
                         maxLines: 2,
+                        validator: (v) => v!.isEmpty ? "Required" : null,
                       ),
+                      const SizedBox(height: 16),
+
+                      TextFormField(
+                        controller: _deliveryFeeController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: "Delivery Fee (RM)",
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.delivery_dining),
+                          helperText: "This fee applies to all delivery orders",
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return "Required";
+                          if (double.tryParse(v) == null)
+                            return "Invalid number";
+                          return null;
+                        },
+                      ),
+
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _phoneController,
@@ -208,6 +266,17 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                           labelText: "Phone Number",
                           border: OutlineInputBorder(),
                           prefixIcon: Icon(Icons.phone),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+                      // ✅ Ensure this is wrapped in a way it doesn't error if expanded isn't needed
+                      TextFormField(
+                        controller: _deliveryTimeController,
+                        decoration: const InputDecoration(
+                          labelText: "Est. Time",
+                          border: OutlineInputBorder(),
+                          hintText: "e.g. 30 mins",
                         ),
                       ),
 
@@ -220,13 +289,8 @@ class _MerchantSettingsScreenState extends State<MerchantSettingsScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        "Select all that apply to help students find you:",
-                        style: TextStyle(color: Colors.grey),
-                      ),
                       const SizedBox(height: 10),
 
-                      // ✅ CATEGORY SELECTION CHIPS
                       Wrap(
                         spacing: 8.0,
                         children:

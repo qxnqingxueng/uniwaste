@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class SalesReportScreen extends StatelessWidget {
   final String merchantId;
@@ -19,6 +20,7 @@ class SalesReportScreen extends StatelessWidget {
                   'status',
                   isEqualTo: 'completed',
                 ) // Only count COMPLETED orders
+                .orderBy('orderDate', descending: true) // Sort by newest first
                 .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -38,27 +40,38 @@ class SalesReportScreen extends StatelessWidget {
             final data = doc.data() as Map<String, dynamic>;
             totalRevenue += (data['totalAmount'] ?? 0.0);
 
-            // Count items if available
             if (data['items'] != null) {
               final itemsList = data['items'] as List;
-              totalItemsSold += itemsList.length;
+              for (var item in itemsList) {
+                final qty = (item['quantity'] ?? 1) as int;
+                totalItemsSold += qty;
+              }
             }
           }
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Revenue Card
-                _buildStatCard(
-                  "Total Revenue",
-                  "RM ${totalRevenue.toStringAsFixed(2)}",
-                  Icons.attach_money,
-                  Colors.green,
+                // ✅ UPDATED: Total Revenue (Centered Top)
+                Center(
+                  child: SizedBox(
+                    width:
+                        double
+                            .infinity, // Makes it span full width or you can set a specific width
+                    child: _buildStatCard(
+                      "Total Revenue",
+                      "RM ${totalRevenue.toStringAsFixed(2)}",
+                      Icons.attach_money,
+                      Colors.green,
+                      isCenter: true, // Helper to center text inside card
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
 
-                // Orders Count Card
+                // ✅ UPDATED: Other Two Cards (Side by Side)
                 Row(
                   children: [
                     Expanded(
@@ -94,22 +107,35 @@ class SalesReportScreen extends StatelessWidget {
                     itemCount: orders.length,
                     itemBuilder: (context, index) {
                       final data = orders[index].data() as Map<String, dynamic>;
-                      return ListTile(
-                        leading: const Icon(
-                          Icons.monetization_on,
-                          color: Colors.green,
-                        ),
-                        title: Text(
-                          "RM ${(data['totalAmount'] ?? 0).toStringAsFixed(2)}",
-                        ),
-                        subtitle: Text(data['userName'] ?? 'Customer'),
-                        trailing: Text(
-                          (data['orderDate'] as Timestamp?)
-                                  ?.toDate()
-                                  .toString()
-                                  .substring(0, 10) ??
-                              '',
-                          style: const TextStyle(color: Colors.grey),
+                      final date = (data['orderDate'] as Timestamp?)?.toDate();
+                      final dateString =
+                          date != null
+                              ? DateFormat('dd MMM, h:mm a').format(date)
+                              : '';
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: Colors.green[100],
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.green,
+                            ),
+                          ),
+                          title: Text(
+                            data['userName'] ?? 'Student',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(dateString),
+                          trailing: Text(
+                            "RM ${(data['totalAmount'] ?? 0).toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: Colors.green,
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -140,23 +166,25 @@ class SalesReportScreen extends StatelessWidget {
     String title,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    bool isCenter = false,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isCenter ? CrossAxisAlignment.center : CrossAxisAlignment.start,
         children: [
           Icon(icon, color: color, size: 30),
           const SizedBox(height: 10),

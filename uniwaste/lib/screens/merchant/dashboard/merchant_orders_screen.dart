@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-// ✅ CRITICAL IMPORT: This connects the two screens
 import 'package:uniwaste/screens/merchant/dashboard/merchant_order_detail_screen.dart';
 
 class MerchantOrdersScreen extends StatelessWidget {
@@ -40,15 +38,17 @@ class MerchantOrdersScreen extends StatelessWidget {
 
           final orders = snapshot.data!.docs;
 
-          // Filter out completed orders
+          // Filter active orders (not completed/cancelled)
           final activeOrders =
               orders.where((doc) {
                 final data = doc.data() as Map<String, dynamic>;
-                return data['status'] != 'completed';
+                final status = data['status'] ?? 'pending';
+                return status != 'completed' && status != 'cancelled';
               }).toList();
 
-          if (activeOrders.isEmpty)
-            return const Center(child: Text("All orders completed!"));
+          if (activeOrders.isEmpty) {
+            return const Center(child: Text("No active orders right now."));
+          }
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -56,9 +56,9 @@ class MerchantOrdersScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = activeOrders[index].data() as Map<String, dynamic>;
               final orderId = activeOrders[index].id;
-              final userName = data['userName'] ?? "Unknown User";
-              final status = data['status'] ?? 'paid';
+              final status = data['status'] ?? 'pending';
               final method = data['method'] ?? 'Delivery';
+              final total = (data['totalAmount'] ?? 0).toDouble();
               final date = (data['orderDate'] as Timestamp?)?.toDate();
 
               return Card(
@@ -68,9 +68,12 @@ class MerchantOrdersScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.all(16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  // ✅ TAP TO GO TO DETAILS (Where the buttons are)
                   onTap: () {
-                    // ✅ NAVIGATION NOW WORKS WITH THE IMPORT
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -93,28 +96,40 @@ class MerchantOrdersScreen extends StatelessWidget {
                     ),
                   ),
                   title: Text(
-                    userName,
+                    "Order #${orderId.substring(0, 5).toUpperCase()}",
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 4),
-                      Text("Status: ${status.toUpperCase()}"),
+                      Text("Status: ${status.toString().toUpperCase()}"),
                       if (date != null)
                         Text(
-                          DateFormat('h:mm a, dd MMM').format(date),
-                          style: const TextStyle(
+                          DateFormat('dd MMM, h:mm a').format(date),
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey,
+                            color: Colors.grey[600],
                           ),
                         ),
                     ],
                   ),
-                  trailing: const Icon(
-                    Icons.arrow_forward_ios,
-                    size: 16,
-                    color: Colors.grey,
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "RM ${total.toStringAsFixed(2)}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        size: 14,
+                        color: Colors.grey,
+                      ),
+                    ],
                   ),
                 ),
               );

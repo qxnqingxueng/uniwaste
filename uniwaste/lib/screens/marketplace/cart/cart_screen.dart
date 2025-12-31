@@ -1,13 +1,8 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_state.dart';
-import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 import 'package:uniwaste/screens/marketplace/checkout/checkout_screen.dart';
-
-// ✅ 1. IMPORT THE SHOP HOME SCREEN
-import 'package:uniwaste/screens/marketplace/home/marketplace_home_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -15,7 +10,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF1F3E0),
       appBar: AppBar(
         title: const Text(
           "My Cart",
@@ -23,39 +18,255 @@ class CartScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () {
-              context.read<CartBloc>().add(ClearCart());
-            },
-          ),
-        ],
       ),
       body: BlocBuilder<CartBloc, CartState>(
         builder: (context, state) {
-          if (state is CartLoading)
-            return const Center(child: CircularProgressIndicator());
-
           if (state is! CartLoaded || state.items.isEmpty) {
-            return _buildEmptyCart(context);
+            return const Center(child: Text("Your cart is empty"));
           }
 
-          return Column(
+          return Stack(
             children: [
-              Expanded(
+              // 1. SCROLLABLE LIST
+              Positioned.fill(
+                bottom: 100, // Space for the bottom bar
                 child: ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: state.items.length,
-                  separatorBuilder: (context, index) => const Divider(),
-                  itemBuilder:
-                      (context, index) =>
-                          _buildCartItem(context, state.items[index]),
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final item = state.items[index];
+
+                    // Image Logic
+                    Widget imageWidget;
+                    if (item.imagePath != null && item.imagePath!.isNotEmpty) {
+                      try {
+                        imageWidget = Image.memory(
+                          base64Decode(item.imagePath!),
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => const Icon(
+                                Icons.fastfood,
+                                color: Colors.grey,
+                              ),
+                        );
+                      } catch (e) {
+                        imageWidget = const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                        );
+                      }
+                    } else {
+                      imageWidget = const Icon(
+                        Icons.fastfood,
+                        color: Colors.grey,
+                      );
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 5,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          // Checkbox (Compact)
+                          SizedBox(
+                            width: 30,
+                            child: Checkbox(
+                              value: item.isSelected,
+                              activeColor: const Color(0xFF778873),
+                              onChanged:
+                                  (_) => context.read<CartBloc>().add(
+                                    ToggleSelection(item.id),
+                                  ),
+                            ),
+                          ),
+
+                          // Image
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: imageWidget,
+                            ),
+                          ),
+
+                          const SizedBox(width: 12),
+
+                          // Name & Price (Flexible to prevent squash)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.name,
+                                  maxLines: 2,
+                                  overflow:
+                                      TextOverflow
+                                          .ellipsis, // ✅ Fixes word breaking
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  "RM ${item.price.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Qty Controls & Trash (Compact Row)
+                          Row(
+                            mainAxisSize: MainAxisSize.min, // Keep tight
+                            children: [
+                              _buildQtyBtn(Icons.remove, () {
+                                if (item.quantity > 1) {
+                                  context.read<CartBloc>().add(
+                                    UpdateQuantity(item.id, item.quantity - 1),
+                                  );
+                                }
+                              }),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
+                                child: Text(
+                                  "${item.quantity}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              _buildQtyBtn(Icons.add, () {
+                                context.read<CartBloc>().add(
+                                  UpdateQuantity(item.id, item.quantity + 1),
+                                );
+                              }),
+                              const SizedBox(width: 8),
+                              // Trash Icon
+                              InkWell(
+                                onTap: () {
+                                  context.read<CartBloc>().add(
+                                    RemoveItem(item.id),
+                                  );
+                                },
+                                child: const Padding(
+                                  padding: EdgeInsets.all(4.0),
+                                  child: Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                    size: 22,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
               ),
-              _buildCheckoutBar(context, state),
+
+              // 2. PINNED CHECKOUT BAR (Most Bottom)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    16,
+                    24,
+                    30,
+                  ), // Extra bottom padding for safe area
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 10,
+                        offset: Offset(0, -5),
+                      ),
+                    ],
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            "Total",
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
+                          ),
+                          Text(
+                            "RM ${state.totalAmount.toStringAsFixed(2)}",
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF778873),
+                            ),
+                          ),
+                        ],
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF778873),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        onPressed:
+                            state.totalAmount > 0
+                                ? () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CheckoutScreen(),
+                                  ),
+                                )
+                                : null,
+                        child: const Text(
+                          "Checkout",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           );
         },
@@ -63,155 +274,17 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyCart(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.shopping_cart_outlined,
-            size: 80,
-            color: Colors.grey,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            "Your cart is empty",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-
-          // ✅ 2. FIXED BUTTON NAVIGATION
-          ElevatedButton(
-            onPressed: () {
-              // Navigate to the Shop Page instead of closing the app
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const MarketplaceHomeScreen(),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B5E20),
-            ),
-            child: const Text(
-              "Start Shopping",
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCartItem(BuildContext context, CartItemModel item) {
-    return Row(
-      children: [
-        Checkbox(
-          value: item.isSelected,
-          activeColor: const Color(0xFF1B5E20),
-          onChanged:
-              (val) => context.read<CartBloc>().add(ToggleSelection(item.id)),
+  // Helper for small qty buttons
+  Widget _buildQtyBtn(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(6),
         ),
-        Container(
-          width: 70,
-          height: 70,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.fastfood, color: Colors.grey),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.name,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "RM ${item.price.toStringAsFixed(2)}",
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-        Row(
-          children: [
-            IconButton(
-              icon: const Icon(Icons.remove_circle_outline),
-              onPressed: () {
-                if (item.quantity > 1) {
-                  context.read<CartBloc>().add(
-                    UpdateQuantity(item.id, item.quantity - 1),
-                  );
-                } else {
-                  context.read<CartBloc>().add(RemoveItem(item.id));
-                }
-              },
-            ),
-            Text(
-              "${item.quantity}",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed:
-                  () => context.read<CartBloc>().add(
-                    UpdateQuantity(item.id, item.quantity + 1),
-                  ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCheckoutBar(BuildContext context, CartLoaded state) {
-    final selectedItems = state.items.where((i) => i.isSelected).toList();
-    final total = selectedItems.fold(
-      0.0,
-      (sum, i) => sum + (i.price * i.quantity),
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            "Total: RM ${total.toStringAsFixed(2)}",
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          ElevatedButton(
-            onPressed:
-                selectedItems.isEmpty
-                    ? null
-                    : () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CheckoutScreen()),
-                    ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B5E20),
-            ),
-            child: Text(
-              "Checkout (${selectedItems.length})",
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
+        child: Icon(icon, size: 16, color: Colors.black87),
       ),
     );
   }
