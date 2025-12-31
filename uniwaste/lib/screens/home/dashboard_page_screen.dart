@@ -108,13 +108,40 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Good Morning, ${user?.name ?? 'Student'}! 🍔",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                // StreamBuilder to listen for real-time name changes (e.g. Company Name)
+                StreamBuilder<DocumentSnapshot>(
+                  stream:
+                      userId.isNotEmpty
+                          ? FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userId)
+                              .snapshots()
+                          : null,
+                  builder: (context, snapshot) {
+                    // Fallback to Bloc state or 'Student'
+                    String displayName = user?.name ?? 'Student';
+
+                    if (snapshot.hasData &&
+                        snapshot.data != null &&
+                        snapshot.data!.exists) {
+                      final data =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      // If 'name' field exists and is not empty, use it
+                      if (data['name'] != null &&
+                          data['name'].toString().trim().isNotEmpty) {
+                        displayName = data['name'].toString();
+                      }
+                    }
+
+                    return Text(
+                      "Good Morning, $displayName! 🍔",
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 4),
                 Text(
