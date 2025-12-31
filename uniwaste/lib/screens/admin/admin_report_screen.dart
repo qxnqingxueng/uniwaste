@@ -154,7 +154,7 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
             final data = reports[index].data() as Map<String, dynamic>;
             final String reportedUserId = data['reported_user'] ?? '';
 
-            // ✅ FILTER LOGIC: Fetch user to check stats before showing
+            // FILTER LOGIC: Fetch user to check stats before showing
             return FutureBuilder<DocumentSnapshot>(
               future: _db.collection('users').doc(reportedUserId).get(),
               builder: (context, userSnap) {
