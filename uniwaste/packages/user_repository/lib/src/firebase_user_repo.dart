@@ -18,10 +18,15 @@ class FirebaseUserRepo implements UserRepository {
       } else {
         yield* usersCollection
             .doc(firebaseUser.uid)
-            .get()
-            .then((value) =>
-                MyUser.fromEntity(MyUserEntity.fromDocument(value.data()!)))
-            .asStream();
+            .snapshots()
+            .map((snapshot) {
+          if (snapshot.exists && snapshot.data() != null) {
+            return MyUser.fromEntity(
+                MyUserEntity.fromDocument(snapshot.data()!));
+          } else {
+            return MyUser.empty;
+          }
+        });
       }
     });
   }

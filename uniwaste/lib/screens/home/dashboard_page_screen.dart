@@ -108,13 +108,40 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Good Morning, ${user?.name ?? 'Student'}! 🍔",
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                // StreamBuilder to listen for real-time name changes (e.g. Company Name)
+                StreamBuilder<DocumentSnapshot>(
+                  stream:
+                      userId.isNotEmpty
+                          ? FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(userId)
+                              .snapshots()
+                          : null,
+                  builder: (context, snapshot) {
+                    // Fallback to Bloc state or 'Student'
+                    String displayName = user?.name ?? 'Student';
+
+                    if (snapshot.hasData &&
+                        snapshot.data != null &&
+                        snapshot.data!.exists) {
+                      final data =
+                          snapshot.data!.data() as Map<String, dynamic>;
+                      // If 'name' field exists and is not empty, use it
+                      if (data['name'] != null &&
+                          data['name'].toString().trim().isNotEmpty) {
+                        displayName = data['name'].toString();
+                      }
+                    }
+
+                    return Text(
+                      "Good Morning, $displayName! 🍔",
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -254,7 +281,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 _buildEnvironmentalImpactSection(),
 
                 const SizedBox(height: 30),
-
               ],
             ),
           ),
@@ -444,7 +470,9 @@ class _DashboardPageState extends State<DashboardPage> {
                 : Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
         border:
-            isMe ? Border.all(color: Colors.white.withValues(alpha: 0.35)) : null,
+            isMe
+                ? Border.all(color: Colors.white.withValues(alpha: 0.35))
+                : null,
       ),
       child: Row(
         children: [
@@ -498,15 +526,17 @@ class _DashboardPageState extends State<DashboardPage> {
       );
     }
 
-    final initial =
-        name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : "U";
+    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : "U";
 
     return CircleAvatar(
       radius: 16,
       backgroundColor: Colors.white.withValues(alpha: 0.25),
       child: Text(
         initial,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -546,10 +576,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 12),
                   const Text(
                     "Top 50 Leaderboard",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Expanded(
@@ -564,9 +591,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
                         final docs = snapshot.data!.docs;
                         if (docs.isEmpty) {
-                          return const Center(
-                            child: Text("No users found."),
-                          );
+                          return const Center(child: Text("No users found."));
                         }
 
                         return ListView.builder(
@@ -602,18 +627,21 @@ class _DashboardPageState extends State<DashboardPage> {
                               decoration: BoxDecoration(
                                 color:
                                     isMe
-                                        ? const Color(0xFF6B8E23).withValues(
-                                          alpha: 0.12,
-                                        )
+                                        ? const Color(
+                                          0xFF6B8E23,
+                                        ).withValues(alpha: 0.12)
                                         : Colors.grey.shade50,
                                 borderRadius: BorderRadius.circular(14),
-                                border: isMe
-                                    ? Border.all(
-                                        color: const Color(0xFF6B8E23).withValues(
-                                          alpha: 0.35,
+                                border:
+                                    isMe
+                                        ? Border.all(
+                                          color: const Color(
+                                            0xFF6B8E23,
+                                          ).withValues(alpha: 0.35),
+                                        )
+                                        : Border.all(
+                                          color: Colors.grey.shade200,
                                         ),
-                                      )
-                                    : Border.all(color: Colors.grey.shade200),
                               ),
                               child: Row(
                                 children: [
