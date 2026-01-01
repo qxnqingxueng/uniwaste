@@ -11,6 +11,8 @@ class ActivityService {
     return _db
         .collection('activities')
         .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(3)
         .snapshots();
   }
 
@@ -61,7 +63,7 @@ class ActivityService {
     });
 
     // also bump user points here
-    await _addPointsToUser(userId, points);  
+    await _addPointsToUser(userId, points);
 
     return docRef.id;
   }
@@ -104,20 +106,19 @@ class ActivityService {
 
         tx.update(userRef, {'points': newPoints});
 
-      // 🔥 Check if user crossed 3000-point threshold
-      int oldMilestone = oldPoints ~/ 350;
-      int newMilestone = newPoints ~/ 350;
+        // 🔥 Check if user crossed 3000-point threshold
+        int oldMilestone = oldPoints ~/ 350;
+        int newMilestone = newPoints ~/ 350;
 
-      if (newMilestone > oldMilestone) {
-        // User reached a new 3000 milestone → award voucher
-        _grantVoucher(userId);
-      }
-    });
-
-  } catch (e) {
-    debugPrint('❌ Error updating points for $userId: $e');
+        if (newMilestone > oldMilestone) {
+          // User reached a new 3000 milestone → award voucher
+          _grantVoucher(userId);
+        }
+      });
+    } catch (e) {
+      debugPrint('❌ Error updating points for $userId: $e');
+    }
   }
-}
 
   Future<void> _grantVoucher(String userId) async {
     final voucherRef =
