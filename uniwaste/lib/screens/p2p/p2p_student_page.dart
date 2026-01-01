@@ -4,16 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:user_repository/user_repository.dart';
-
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/create_listing_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
-import 'package:uniwaste/services/activity_share_helper.dart';
 import 'package:uniwaste/screens/p2p/product_detail_screen.dart';
-import 'package:uniwaste/widgets/animated_check.dart'; // ✅ Using this widget
+import 'package:uniwaste/widgets/animated_check.dart';
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});
@@ -180,100 +177,6 @@ class _P2PStudentPageState extends State<P2PStudentPage>
           context,
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
-    }
-  }
-
-  // --- SHARE LOGIC ---
-  Future<void> _shareItem(
-    Map<String, dynamic> data,
-    String docId,
-    String userId,
-    String userName,
-  ) async {
-    final bool confirm =
-        await showDialog(
-          context: context,
-          builder:
-              (ctx) => AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                title: const Text("Share to Feed?"),
-                content: const Text(
-                  "Do you want to share this activity so others can see your impact?",
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    child: const Text(
-                      "Not now",
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx, true),
-                    child: const Text(
-                      "Share",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6B8E23),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-        ) ??
-        false;
-
-    if (!confirm) return;
-
-    await ActivityShareHelper.shareToFeedDirectly(
-      userId: userId,
-      userDisplayName: userName,
-      title: 'You claimed ${data['description']}',
-      description: 'You received food from ${data['donor_name']}.',
-      points: 50,
-      type: 'p2p_free',
-      extra: {},
-    );
-
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder:
-            (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 10),
-                  const AnimatedCheck(size: 80),
-                  const SizedBox(height: 20),
-                  const Text(
-                    "Shared to Feed!",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Your community can now see your impact.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text(
-                    "OK",
-                    style: TextStyle(color: Color(0xFF6B8E23)),
-                  ),
-                ),
-              ],
-            ),
-      );
     }
   }
 
@@ -926,19 +829,7 @@ void _showReportDialog(String donorId, String listingId) {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.chat),
-                          onPressed:
-                              () =>
-                                  _openChat(data, uid, currentUser?.name ?? ''),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.share),
-                          onPressed:
-                              () => _shareItem(
-                                data,
-                                docs[index].id,
-                                uid,
-                                currentUser?.name ?? '',
-                              ),
+                          onPressed: () => _openChat(data, uid, currentUser?.name ?? ''),
                         ),
                       ],
                     ),
