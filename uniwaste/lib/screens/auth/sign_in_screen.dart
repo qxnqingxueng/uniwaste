@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/sign_in_bloc/sign_in_bloc.dart';
 
-// Remove the old SignInScreen wrapper, just keep the content
 class SignInContent extends StatefulWidget {
   final VoidCallback onSignUpTap;
 
@@ -16,14 +15,86 @@ class _SignInContentState extends State<SignInContent> {
   final _passwordController = TextEditingController();
   final _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
   bool signInRequired = false;
   bool obscurePassword = true;
+
+  // ✅ NEW: field-level firebase/auth error messages
+  String? _emailAuthError;
+  String? _passwordAuthError;
 
   @override
   void dispose() {
     _passwordController.dispose();
     _emailController.dispose();
     super.dispose();
+  }
+
+  // ✅ NEW: basic email format check (simple + effective)
+  bool _isValidEmail(String email) {
+    final e = email.trim();
+    return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(e);
+  }
+
+  // ✅ NEW: map ugly firebase/auth error to friendly message
+  // We don't rely on exact wording; we match common codes/keywords.
+  void _applyFriendlyAuthError(String rawMessage) {
+    final msg = rawMessage.toLowerCase();
+
+    String? emailErr;
+    String? passErr;
+
+    // Most common in your screenshot:
+    // [firebase_auth/invalid-credential]
+    if (msg.contains('invalid-credential') ||
+        msg.contains('wrong-password') ||
+        msg.contains('invalid login credentials') ||
+        msg.contains('incorrect') && msg.contains('password')) {
+      // Put it under password (best UX)
+      passErr = 'Incorrect email or password.';
+    } else if (msg.contains('user-not-found')) {
+      emailErr = 'No account found for this email.';
+    } else if (msg.contains('invalid-email')) {
+      emailErr = 'Please enter a valid email address.';
+    } else if (msg.contains('too-many-requests')) {
+      passErr = 'Too many attempts. Please try again later.';
+    } else if (msg.contains('network') || msg.contains('socket')) {
+      passErr = 'Network error. Please check your connection.';
+    } else {
+      // fallback (still user-friendly)
+      passErr = 'Login failed. Please try again.';
+    }
+
+    setState(() {
+      _emailAuthError = emailErr;
+      _passwordAuthError = passErr;
+    });
+
+    // Trigger re-validation so the red text appears immediately
+    _formKey.currentState?.validate();
+  }
+
+  void _clearAuthErrors() {
+    if (_emailAuthError != null || _passwordAuthError != null) {
+      setState(() {
+        _emailAuthError = null;
+        _passwordAuthError = null;
+      });
+    }
+  }
+
+  void _onLoginPressed() {
+    // clear old firebase error text first
+    _clearAuthErrors();
+
+    if (_formKey.currentState!.validate()) {
+      context.read<SignInBloc>().add(
+            SignInRequired(
+              _emailController.text.trim(),
+              _passwordController.text,
+            ),
+          );
+    }
   }
 
   @override
@@ -36,9 +107,14 @@ class _SignInContentState extends State<SignInContent> {
           setState(() => signInRequired = true);
         } else if (state is SignInFailure) {
           setState(() => signInRequired = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message ?? 'Login Failed')),
-          );
+
+          // ✅ Replace ugly snackbar error with field-level friendly errors
+          final raw = (state.message ?? '').trim();
+          if (raw.isNotEmpty) {
+            _applyFriendlyAuthError(raw);
+          } else {
+            _applyFriendlyAuthError('Login failed');
+          }
         }
       },
       child: SingleChildScrollView(
@@ -68,6 +144,7 @@ class _SignInContentState extends State<SignInContent> {
                 style: TextStyle(fontSize: 12, color: Colors.black54),
               ),
               const SizedBox(height: 32),
+
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -78,14 +155,27 @@ class _SignInContentState extends State<SignInContent> {
                   filled: true,
                   fillColor: Colors.white,
                 ),
-                validator: (val) {
-                  if (val!.isEmpty) {
-                    return 'Please enter your email';
+                onChanged: (_) {
+                  // ✅ clear firebase error as user edits
+                  if (_emailAuthError != null) {
+                    setState(() => _emailAuthError = null);
+                    _formKey.currentState?.validate();
                   }
+                },
+                validator: (val) {
+                  final v = (val ?? '').trim();
+
+                  // firebase/auth error takes priority if exists
+                  if (_emailAuthError != null) return _emailAuthError;
+
+                  if (v.isEmpty) return 'Please enter your email';
+                  if (!_isValidEmail(v)) return 'Please enter a valid email address';
                   return null;
                 },
               ),
+
               const SizedBox(height: 20),
+
               TextFormField(
                 controller: _passwordController,
                 obscureText: obscurePassword,
@@ -106,48 +196,53 @@ class _SignInContentState extends State<SignInContent> {
                   filled: true,
                   fillColor: Colors.white,
                 ),
-                validator: (val) {
-                  if (val!.isEmpty) {
-                    return 'Please enter your password';
+                onChanged: (_) {
+                  // ✅ clear firebase error as user edits
+                  if (_passwordAuthError != null) {
+                    setState(() => _passwordAuthError = null);
+                    _formKey.currentState?.validate();
                   }
+                },
+                validator: (val) {
+                  // firebase/auth error takes priority if exists
+                  if (_passwordAuthError != null) return _passwordAuthError;
+
+                  final v = (val ?? '');
+                  if (v.isEmpty) return 'Please enter your password';
+                  // optional: you can keep/remove this; it's useful UX
+                  if (v.length < 6) return 'Password must be at least 6 characters';
                   return null;
                 },
               ),
+
               const SizedBox(height: 30),
+
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child:
-                    !signInRequired
-                        ? ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              context.read<SignInBloc>().add(
-                                SignInRequired(
-                                  _emailController.text,
-                                  _passwordController.text,
-                                ),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
+                child: !signInRequired
+                    ? ElevatedButton(
+                        onPressed: _onLoginPressed,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
                           ),
-                          child: const Text(
-                            'LOGIN',
-                            style: TextStyle(fontSize: 16, letterSpacing: 1.2),
-                          ),
-                        )
-                        : const Center(child: CircularProgressIndicator()),
+                        ),
+                        child: const Text(
+                          'LOGIN',
+                          style: TextStyle(fontSize: 16, letterSpacing: 1.2),
+                        ),
+                      )
+                    : const Center(child: CircularProgressIndicator()),
               ),
+
               const SizedBox(height: 16),
+
               Center(
                 child: GestureDetector(
-                  onTap: widget.onSignUpTap, // Call the callback
+                  onTap: widget.onSignUpTap,
                   child: RichText(
                     text: const TextSpan(
                       style: TextStyle(color: Colors.black, fontSize: 14),
