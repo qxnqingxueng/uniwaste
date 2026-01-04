@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uniwaste/services/activity_service.dart';
+import 'package:uniwaste/services/activity_share_helper.dart';
 
 class ActivityScreen extends StatelessWidget {
   final String userId; // MUST pass current user ID
@@ -9,8 +9,6 @@ class ActivityScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final activityService = ActivityService();
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFFA1BC98),
@@ -20,11 +18,12 @@ class ActivityScreen extends StatelessWidget {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
-        // 🔴 no more "+" test button here
       ),
-
       body: StreamBuilder<QuerySnapshot>(
-        stream: activityService.getUserActivities(userId),
+        stream: FirebaseFirestore.instance
+            .collection('activities')
+            .where('userId', isEqualTo: userId)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -45,11 +44,14 @@ class ActivityScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: activities.length,
             itemBuilder: (context, index) {
-              final data = activities[index].data() as Map<String, dynamic>;
+              final doc = activities[index];
+              final data = doc.data() as Map<String, dynamic>;
 
               final title = data['title'] ?? 'Activity';
               final description = data['description'] ?? '';
               final points = data['points'] ?? 0;
+              final type = data['type'] ?? 'generic';
+              final extra = data['extra'] as Map<String, dynamic>?;
 
               final timestamp = data['createdAt'] as Timestamp?;
               final date =
@@ -72,18 +74,40 @@ class ActivityScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF4A4A4A),
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            title,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF4A4A4A),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.share,
+                              size: 20, color: Colors.grey),
+                          onPressed: () async {
+                            await ActivityShareHelper.recordAndMaybeShare(
+                              context: context,
+                              userId: userId,
+                              title: title,
+                              description: description,
+                              points: points,
+                              type: type,
+                              extra: extra,
+                              createActivity: false, // ✅ DO NOT create again
+                              existingActivityId: doc.id, // ✅ link to this activity
+                              userDisplayName: null,
+                            );
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 6),
-
-                    // Description
                     if (description.isNotEmpty)
                       Text(
                         description,
@@ -93,8 +117,6 @@ class ActivityScreen extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 8),
-
-                    // Points + date
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

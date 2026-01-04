@@ -363,23 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _buildCompanySection(),
 
                 const SizedBox(height: 20),
-                ListTile(
-                  leading: const Icon(
-                    Icons.admin_panel_settings,
-                    color: Colors.red,
-                  ),
-                  title: const Text("Admin Panel"),
-                  onTap: () {
-                    // ✅ Fixed: Removed duplicate MaterialPageRoute
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdminReportScreen(),
-                      ),
-                    );
-                  },
-                ),
-
+               
                 // LOGOUT BUTTON
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 24),

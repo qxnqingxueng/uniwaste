@@ -192,13 +192,29 @@ class _ShopPageState extends State<ShopPage> {
                             .collection('food_listings')
                             .where('status', isEqualTo: 'available')
                             .orderBy('created_at', descending: true)
-                            .limit(5)
+                            .limit(10) // Increased limit to ensure we have enough after filtering
                             .snapshots(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+
+                      final allDocs = snapshot.data?.docs ?? [];
+
+                      // ✅ ADDED: Filter out expired items
+                      final validDocs = allDocs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final Timestamp? expiryTs = data['expiry_date'] as Timestamp?;
+                        
+                        if (expiryTs != null) {
+                          if (expiryTs.toDate().isBefore(DateTime.now())) {
+                            return false; // Item is expired
+                          }
+                        }
+                        return true;
+                      }).toList();
+
+                      if (validDocs.isEmpty) {
                         return Container(
                           alignment: Alignment.center,
                           width: double.infinity,
@@ -211,15 +227,13 @@ class _ShopPageState extends State<ShopPage> {
                         );
                       }
 
-                      final docs = snapshot.data!.docs;
-
                       return ListView.builder(
                         scrollDirection: Axis.horizontal,
                         clipBehavior: Clip.none,
-                        itemCount: docs.length,
+                        // Take max 5 items after filtering to keep layout consistent
+                        itemCount: validDocs.length > 5 ? 5 : validDocs.length,
                         itemBuilder: (context, index) {
-                          final data =
-                              docs[index].data() as Map<String, dynamic>;
+                          final data = validDocs[index].data() as Map<String, dynamic>;
                           return _buildRealItemCard(data);
                         },
                       );
