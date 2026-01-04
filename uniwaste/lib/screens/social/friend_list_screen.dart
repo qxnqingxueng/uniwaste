@@ -2,13 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert'; // for base64Decode
-import 'dart:typed_data'; // for Uint8List / MemoryImage
 import 'friend_profile_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+import 'package:uniwaste/widgets/animated_check.dart';
 
 class FriendListScreen extends StatefulWidget {
   const FriendListScreen({super.key});
@@ -41,7 +40,6 @@ class _FriendListScreenState extends State<FriendListScreen> {
   Future<void> _loadFriends() async {
     if (!mounted) return;
 
-    // show loading spinner while we fetch
     setState(() {
       _isLoading = true;
     });
@@ -86,7 +84,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
           if (avatarBase64 != null && avatarBase64.isNotEmpty) {
             try {
               final bytes = base64Decode(avatarBase64);
-              avatarImage = MemoryImage(bytes); // 👈 create provider once
+              avatarImage = MemoryImage(bytes);
             } catch (e) {
               debugPrint('Error decoding avatar for ${s.id}: $e');
             }
@@ -97,7 +95,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
             name: name,
             email: email,
             avatarBase64: avatarBase64,
-            avatarImage: avatarImage, // 👈 pass in
+            avatarImage: avatarImage,
           );
         }).toList();
       }
@@ -105,7 +103,6 @@ class _FriendListScreenState extends State<FriendListScreen> {
       final requests = await fetchUsers(incomingIds);
       final friends = await fetchUsers(friendIds);
 
-      // 👇 Pre-cache all friend avatars before we turn loading off
       await _precacheAvatars([...requests, ...friends]);
 
       if (!mounted) return;
@@ -117,12 +114,12 @@ class _FriendListScreenState extends State<FriendListScreen> {
     } catch (e) {
       debugPrint('Error loading friends: $e');
       if (mounted) {
-        _showSnack('Failed to load friends.');
+        _showErrorDialog('Failed to load friends.');
       }
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false; // 🔥 hide loader when done
+          _isLoading = false;
         });
       }
     }
@@ -142,10 +139,91 @@ class _FriendListScreenState extends State<FriendListScreen> {
   }
 
   // ---------------------------------------------------------------------------
+  // ✅ POP-OUT (AnimatedCheck) HELPERS
+  // ---------------------------------------------------------------------------
+  void _showSuccessPopout({
+    required String title,
+    required String subtitle,
+  }) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: _bgTop,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80),
+                const SizedBox(height: 18),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "OK",
+                  style: TextStyle(color: Color(0xFF6B8E23)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            backgroundColor: _bgTop,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: const Text('Oops'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "OK",
+                  style: TextStyle(color: Color(0xFF6B8E23)),
+                ),
+              ),
+            ],
+          ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // FRIEND ACTIONS
   // ---------------------------------------------------------------------------
 
-  Future<void> _sendFriendRequest(_Friend target) async {
+  // ✅ updated: allow caller to choose popup vs nothing (avoid hidden behind dialog)
+  Future<void> _sendFriendRequest(
+    _Friend target, {
+    bool showPopup = true,
+  }) async {
     final me = _auth.currentUser;
     if (me == null) return;
 
@@ -164,10 +242,18 @@ class _FriendListScreenState extends State<FriendListScreen> {
       });
 
       await batch.commit();
-      _showSnack('Friend request sent to ${target.name}.');
+
+      if (!mounted) return;
+
+      if (showPopup) {
+        _showSuccessPopout(
+          title: 'Request Sent ✓',
+          subtitle: 'Friend request sent to ${target.name}.',
+        );
+      }
     } catch (e) {
       debugPrint('Error sending friend request: $e');
-      _showSnack('Failed to send friend request.');
+      _showErrorDialog('Failed to send friend request.');
     }
   }
 
@@ -199,10 +285,13 @@ class _FriendListScreenState extends State<FriendListScreen> {
         _friends.add(f);
       });
 
-      _showSnack('You are now friends with ${f.name}.');
+      _showSuccessPopout(
+        title: 'Accepted ✓',
+        subtitle: 'You are now friends with ${f.name}.',
+      );
     } catch (e) {
       debugPrint('Error accepting request: $e');
-      _showSnack('Failed to accept request.');
+      _showErrorDialog('Failed to accept request.');
     }
   }
 
@@ -231,14 +320,16 @@ class _FriendListScreenState extends State<FriendListScreen> {
         _friendRequests.removeWhere((x) => x.uid == f.uid);
       });
 
-      _showSnack('Request ignored.');
+      _showSuccessPopout(
+        title: 'Ignored ✓',
+        subtitle: 'Request ignored.',
+      );
     } catch (e) {
       debugPrint('Error ignoring request: $e');
-      _showSnack('Failed to ignore request.');
+      _showErrorDialog('Failed to ignore request.');
     }
   }
 
-  // NEW: remove friend from both sides
   Future<void> _removeFriend(_Friend f) async {
     final me = _auth.currentUser;
     if (me == null) return;
@@ -264,10 +355,13 @@ class _FriendListScreenState extends State<FriendListScreen> {
         _friends.removeWhere((x) => x.uid == f.uid);
       });
 
-      _showSnack('Removed ${f.name} from your friends.');
+      _showSuccessPopout(
+        title: 'Removed ✓',
+        subtitle: 'Removed ${f.name} from your friends.',
+      );
     } catch (e) {
       debugPrint('Error removing friend: $e');
-      _showSnack('Failed to remove friend.');
+      _showErrorDialog('Failed to remove friend.');
     }
   }
 
@@ -282,20 +376,17 @@ class _FriendListScreenState extends State<FriendListScreen> {
         return SafeArea(
           child: Wrap(
             children: [
-              // Chat with friend
               ListTile(
                 leading: const Icon(Icons.chat_bubble_outline),
                 title: const Text('Chat with friend'),
                 onTap: () async {
                   Navigator.of(sheetCtx).pop();
 
-                  // Get current user from AuthenticationBloc
                   final authState = context.read<AuthenticationBloc>().state;
                   final currentUser = authState.user!;
 
                   final String currentUserId = currentUser.userId;
-                  final String currentUserName =
-                      currentUser.name; // or displayName, adjust field
+                  final String currentUserName = currentUser.name;
                   final String otherUserId = friend.uid;
 
                   final chatId = await _chatService.getOrCreateChat(
@@ -316,15 +407,12 @@ class _FriendListScreenState extends State<FriendListScreen> {
                             currentUserId: currentUserId,
                             otherUserId: otherUserId,
                             otherUserName: friend.name,
-                            itemName:
-                                'Friend chat', // or data from Firestore if you want
+                            itemName: 'Friend chat',
                           ),
                     ),
                   );
                 },
               ),
-
-              // 👉 View profile
               ListTile(
                 leading: const Icon(Icons.person_outline),
                 title: const Text('View profile'),
@@ -335,6 +423,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
                     MaterialPageRoute(
                       builder:
                           (_) => FriendProfileScreen(
+                            friendUserId: friend.uid,
                             name: friend.name,
                             email: friend.email,
                             avatarBase64: friend.avatarBase64,
@@ -343,8 +432,6 @@ class _FriendListScreenState extends State<FriendListScreen> {
                   );
                 },
               ),
-
-              // 👉 Remove friend
               ListTile(
                 leading: const Icon(Icons.person_remove_outlined),
                 title: const Text('Remove friend'),
@@ -355,6 +442,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
                     context: context,
                     builder: (dialogCtx) {
                       return AlertDialog(
+                        backgroundColor: _bgTop,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),
                         ),
@@ -394,7 +482,6 @@ class _FriendListScreenState extends State<FriendListScreen> {
   // ---------------------------------------------------------------------------
   // ADD FRIEND DIALOG
   // ---------------------------------------------------------------------------
-
   void _openAddFriendDialog() {
     final emailController = TextEditingController();
     _Friend? foundUser;
@@ -467,7 +554,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
                       name: name,
                       email: (d['email'] ?? '') as String,
                       avatarBase64: avatarBase64,
-                      avatarImage: avatarImage, // 👈 pass it here
+                      avatarImage: avatarImage,
                     );
 
                     final alreadyFriend = _friends.any(
@@ -503,11 +590,15 @@ class _FriendListScreenState extends State<FriendListScreen> {
               }
             }
 
+            // ✅ FIX: close dialog FIRST, then show popout on the page context
             Future<void> handleSendRequest() async {
               if (foundUser == null) return;
-              await _sendFriendRequest(foundUser!);
+
+              Navigator.of(dialogContext).pop();
+
+              await _sendFriendRequest(foundUser!, showPopup: true);
+
               if (mounted) {
-                Navigator.of(dialogContext).pop();
                 _loadFriends();
               }
             }
@@ -653,7 +744,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
     final hasAnything = hasRequests || hasFriends;
 
     return Scaffold(
-      backgroundColor: _bgTop, // 🔥 same colour as body
+      backgroundColor: _bgTop,
       appBar: AppBar(
         backgroundColor: _bgTop,
         elevation: 0,
@@ -669,7 +760,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
         ),
       ),
       body: Container(
-        color: _bgTop, // solid background, no gradient
+        color: _bgTop,
         child:
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -867,10 +958,9 @@ class _FriendListScreenState extends State<FriendListScreen> {
     );
   }
 
-Widget _buildFriendRow(_Friend friend) {
+  Widget _buildFriendRow(_Friend friend) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      // Clip ensures the green bar respects the rounded corners
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -880,33 +970,23 @@ Widget _buildFriendRow(_Friend friend) {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 1. Green Accent Bar
             Container(
               width: 4,
               decoration: BoxDecoration(
                 color: _accent.withOpacity(0.6),
               ),
             ),
-            
             const SizedBox(width: 8),
-
-            // 2. MAIN CONTENT (Wrapped in Expanded)
-            // This forces the row to fill available space but NOT overflow
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Row(
                   children: [
-                    // Avatar (Fixed size)
                     Padding(
                       padding: const EdgeInsets.only(left: 8.0),
                       child: _buildAvatar(friend, radius: 27),
                     ),
-                    
                     const SizedBox(width: 12),
-                    
-                    // Text Column (Wrapped in Expanded)
-                    // This creates the constraint so text truncates instead of overflowing
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -915,9 +995,9 @@ Widget _buildFriendRow(_Friend friend) {
                           Text(
                             friend.name,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis, // Adds "..." if too long
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 16, // Reduced slightly to fit better
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -925,7 +1005,7 @@ Widget _buildFriendRow(_Friend friend) {
                           Text(
                             friend.email,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis, // Adds "..." if too long
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 13,
                               color: Colors.grey,
@@ -938,17 +1018,12 @@ Widget _buildFriendRow(_Friend friend) {
                 ),
               ),
             ),
-
-            // 3. Menu Button (Fixed size)
-            // We removed Spacer() because the Expanded above handles the spacing
             IconButton(
               icon: const Icon(Icons.more_horiz, size: 22),
               onPressed: () => _showFriendOptions(friend),
-              padding: EdgeInsets.zero, // Reduces extra padding causing width issues
-              constraints: const BoxConstraints(), // Minimizes button footprint
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-            
-            // Right margin for the button
             const SizedBox(width: 12),
           ],
         ),
@@ -957,7 +1032,6 @@ Widget _buildFriendRow(_Friend friend) {
   }
 
   Widget _buildAvatar(_Friend friend, {double radius = 20}) {
-    // 1. If we already have a cached image provider, use it
     if (friend.avatarImage != null) {
       return CircleAvatar(
         radius: radius,
@@ -966,8 +1040,6 @@ Widget _buildFriendRow(_Friend friend) {
       );
     }
 
-    // 2. (Optional) Fallback: if only base64 is present but no image –
-    //    this can happen for some temporary objects like search result.
     final String? base64 = friend.avatarBase64;
     if (base64 != null && base64.isNotEmpty) {
       try {
@@ -977,12 +1049,9 @@ Widget _buildFriendRow(_Friend friend) {
           backgroundColor: _accent.withOpacity(0.2),
           backgroundImage: MemoryImage(bytes),
         );
-      } catch (_) {
-        // ignore and fall back to initial
-      }
+      } catch (_) {}
     }
 
-    // 3. Final fallback: initial letter
     final String initial =
         friend.name.trim().isNotEmpty
             ? friend.name.trim()[0].toUpperCase()
@@ -1001,6 +1070,9 @@ Widget _buildFriendRow(_Friend friend) {
       ),
     );
   }
+
+  // NOTE: _buildAddFriendsButton(), _buildEmptyState() are already present above.
+  // If you had them in your original file, keep exactly ONE copy each.
 
   void _showSnack(String msg) {
     if (!mounted) return;

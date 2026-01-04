@@ -134,7 +134,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     }
 
                     return Text(
-                      "Good Morning, $displayName! 🍔",
+                      "Welcome, $displayName! 🍔",
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,

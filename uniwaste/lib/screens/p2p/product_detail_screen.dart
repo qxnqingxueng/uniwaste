@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -11,7 +12,7 @@ class ProductDetailScreen extends StatefulWidget {
   final String docId;
   final MyUser? currentUser;
   final Function(String, String, String, String, String, Map<String, dynamic>)
-  onClaim;
+      onClaim;
 
   // ✅ Pre-cached image from listing page
   final MemoryImage? preloadedDonorImage;
@@ -31,6 +32,9 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isLoading = true;
+
+  // ✅ MUST be in State, not Widget
+  String _donorId = '';
 
   String _donorEmail = '';
   String? _donorAvatarBase64;
@@ -52,35 +56,41 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _loadDonorProfile() async {
-    final String donorId = widget.data['donor_id'] ?? '';
+    final String donorId = (widget.data['donor_id'] ?? '') as String;
+    _donorId = donorId;
 
     if (donorId.isNotEmpty) {
       try {
-        final doc =
-            await FirebaseFirestore.instance
-                .collection('users')
-                .doc(donorId)
-                .get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(donorId)
+            .get();
+
         if (doc.exists) {
           final userData = doc.data() as Map<String, dynamic>;
 
           if (mounted) {
             setState(() {
-              _donorEmail = userData['email'] ?? '';
-              _donorAvatarBase64 = userData['photoBase64'];
+              _donorEmail = (userData['email'] ?? '') as String;
+              _donorAvatarBase64 = userData['photoBase64'] as String?;
             });
           }
 
           if (_donorImageProvider == null &&
               _donorAvatarBase64 != null &&
               _donorAvatarBase64!.isNotEmpty) {
-            final Uint8List bytes = base64Decode(_donorAvatarBase64!);
-            final provider = MemoryImage(bytes);
-            if (mounted) {
-              await precacheImage(provider, context);
-              setState(() {
-                _donorImageProvider = provider;
-              });
+            try {
+              final Uint8List bytes = base64Decode(_donorAvatarBase64!);
+              final provider = MemoryImage(bytes);
+
+              if (mounted) {
+                await precacheImage(provider, context);
+                setState(() {
+                  _donorImageProvider = provider;
+                });
+              }
+            } catch (e) {
+              debugPrint("Error decoding donor profile image: $e");
             }
           }
         }
@@ -106,17 +116,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
 
     Uint8List? imageBytes;
-    if (widget.data['image_blob'] != null &&
-        widget.data['image_blob'] is Blob) {
+    if (widget.data['image_blob'] != null && widget.data['image_blob'] is Blob) {
       imageBytes = (widget.data['image_blob'] as Blob).bytes;
     }
 
-    final bool isFree = widget.data['is_free'] ?? true;
+    final bool isFree = (widget.data['is_free'] ?? true) as bool;
     final double price = (widget.data['price'] ?? 0).toDouble();
-    final String donorName = widget.data['donor_name'] ?? 'Unknown';
+    final String donorName = (widget.data['donor_name'] ?? 'Unknown') as String;
     final Timestamp? expiryTs = widget.data['expiry_date'] as Timestamp?;
-    final bool isMyListing =
-        widget.currentUser?.userId == widget.data['donor_id'];
+    final bool isMyListing = widget.currentUser?.userId == widget.data['donor_id'];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -144,14 +152,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     width: double.infinity,
                     height: 350,
                     color: Colors.grey.shade200,
-                    child:
-                        imageBytes != null
-                            ? Image.memory(imageBytes, fit: BoxFit.cover)
-                            : const Icon(
-                              Icons.image,
-                              size: 80,
-                              color: Colors.grey,
-                            ),
+                    child: imageBytes != null
+                        ? Image.memory(imageBytes, fit: BoxFit.cover)
+                        : const Icon(Icons.image, size: 80, color: Colors.grey),
                   ),
 
                   Padding(
@@ -162,24 +165,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         Row(
                           children: [
                             Text(
-                              isFree
-                                  ? "FREE"
-                                  : "RM ${price.toStringAsFixed(2)}",
+                              isFree ? "FREE" : "RM ${price.toStringAsFixed(2)}",
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color:
-                                    isFree
-                                        ? const Color(0xFF6B8E23)
-                                        : Colors.black,
+                                color: isFree
+                                    ? const Color(0xFF6B8E23)
+                                    : Colors.black,
                               ),
                             ),
                             if (!isFree)
                               Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 8.0,
-                                  top: 4,
-                                ),
+                                padding: const EdgeInsets.only(left: 8.0, top: 4),
                                 child: Text(
                                   "approx.",
                                   style: TextStyle(
@@ -192,7 +189,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          widget.data['description'] ?? 'No Description',
+                          (widget.data['description'] ?? 'No Description') as String,
                           style: const TextStyle(fontSize: 18, height: 1.4),
                         ),
 
@@ -206,17 +203,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             CircleAvatar(
                               backgroundColor: _chatAvatarColor,
                               backgroundImage: _donorImageProvider,
-                              child:
-                                  _donorImageProvider == null
-                                      ? Text(
-                                        donorName.isNotEmpty
-                                            ? donorName[0].toUpperCase()
-                                            : '?',
-                                        style: const TextStyle(
-                                          color: Colors.black87,
-                                        ),
-                                      )
-                                      : null,
+                              child: _donorImageProvider == null
+                                  ? Text(
+                                      donorName.isNotEmpty
+                                          ? donorName[0].toUpperCase()
+                                          : '?',
+                                      style: const TextStyle(color: Colors.black87),
+                                    )
+                                  : null,
                             ),
                             const SizedBox(width: 12),
                             Column(
@@ -241,22 +235,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             const Spacer(),
 
                             OutlinedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder:
-                                        (_) => FriendProfileScreen(
-                                          name: donorName,
-                                          email:
-                                              _donorEmail.isEmpty
-                                                  ? 'Loading...'
-                                                  : _donorEmail,
-                                          avatarBase64: _donorAvatarBase64,
+                              onPressed: _donorId.isEmpty
+                                  ? null
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => FriendProfileScreen(
+                                            friendUserId: _donorId,
+                                            name: donorName,
+                                            email: _donorEmail.isEmpty
+                                                ? 'Loading...'
+                                                : _donorEmail,
+                                            avatarBase64: _donorAvatarBase64,
+                                          ),
                                         ),
-                                  ),
-                                );
-                              },
+                                      );
+                                    },
                               style: OutlinedButton.styleFrom(
                                 shape: const StadiumBorder(),
                               ),
@@ -276,10 +271,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(
-                                  Icons.timer,
-                                  color: Colors.redAccent,
-                                ),
+                                const Icon(Icons.timer, color: Colors.redAccent),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
@@ -301,7 +293,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             ),
           ),
 
-          // --- BOTTOM BUTTON (No Container/Shadow) ---
+          // --- BOTTOM BUTTON ---
           SafeArea(
             top: false,
             minimum: const EdgeInsets.only(bottom: 16),
@@ -311,19 +303,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed:
-                      isMyListing
-                          ? null
-                          : () {
-                            widget.onClaim(
-                              widget.docId,
-                              widget.currentUser?.userId ?? '',
-                              widget.currentUser?.name ?? 'Student',
-                              widget.data['donor_id'] ?? '',
-                              widget.data['donor_name'] ?? 'Unknown',
-                              widget.data,
-                            );
-                          },
+                  onPressed: isMyListing
+                      ? null
+                      : () {
+                          widget.onClaim(
+                            widget.docId,
+                            widget.currentUser?.userId ?? '',
+                            widget.currentUser?.name ?? 'Student',
+                            (widget.data['donor_id'] ?? '') as String,
+                            (widget.data['donor_name'] ?? 'Unknown') as String,
+                            widget.data,
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
                     foregroundColor: Colors.white,
