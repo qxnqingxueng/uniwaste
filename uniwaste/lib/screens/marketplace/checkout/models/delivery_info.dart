@@ -4,6 +4,7 @@ class DeliveryInfo {
   String address;
   String instruction;
 
+  // Constructor with default empty values
   DeliveryInfo({
     this.name = "",
     this.phone = "",

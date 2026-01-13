@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uniwaste/screens/marketplace/checkout/models/order_model.dart';
 
+// Repository to handle order-related operations
 class OrderRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 

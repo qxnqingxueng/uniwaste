@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 
+// Model representing an order
 class OrderModel {
   final String orderId;
   final String userId;
@@ -11,8 +12,6 @@ class OrderModel {
   final List<CartItemModel> items;
   final String shippingAddress;
   final String method;
-
-  // ✅ NEW FIELD: REQUIRED FOR MERCHANT DASHBOARD
   final String merchantId;
 
   OrderModel({
@@ -25,10 +24,10 @@ class OrderModel {
     required this.items,
     required this.shippingAddress,
     required this.method,
-    // ✅ REQUIRED
     required this.merchantId,
   });
 
+  // Helper to convert to Map (for Firestore)
   Map<String, dynamic> toMap() {
     return {
       'orderId': orderId,

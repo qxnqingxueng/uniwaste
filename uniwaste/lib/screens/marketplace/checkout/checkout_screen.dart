@@ -131,12 +131,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           .where('isUsed', isEqualTo: false)
                           .snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting)
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty)
+                    }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return const Center(
                         child: Text("No available vouchers."),
                       );
+                    }
 
                     final docs = snapshot.data!.docs;
                     return ListView.builder(
@@ -310,7 +312,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
 
           if (mounted) {
-            final int pointsEarned = 50;
+            // ✅ CONSTANT 50 POINTS
+            // This is hardcoded to 50 regardless of price or quantity
+            const int pointsEarned = 50;
 
             String itemSummary = items.first.name;
             if (items.length > 1)
@@ -322,7 +326,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               userDisplayName: user.displayName,
               title: "ordered $itemSummary",
               description: "received food from $_merchantName.",
-              points: pointsEarned, // Now passes 50
+              points: pointsEarned, // This passes 50
               type: 'merchant_order',
               createActivity: true,
             );
