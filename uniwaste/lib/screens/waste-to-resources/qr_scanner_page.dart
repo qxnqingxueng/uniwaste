@@ -119,8 +119,8 @@ class _QrScanScreenState extends State<QrScanScreen> {
                 LatLng(targetLat, targetLng),
               );
 
-              // Validate distance (e.g., must be within 50 meters)
-              if (distanceInMeters > 50) {
+              // Validate distance (e.g., must be within 500 meters)
+              if (distanceInMeters > 500) {
                 locationValid = false;
                 resultTitle = "Too Far Away";
                 resultMessage =
