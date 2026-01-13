@@ -102,7 +102,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         if (pointsToAdd > 0) {
           bool locationValid = true;
 
-          // [ADDED] Perform location check if coordinates exist in DB
+          // Perform location check if coordinates exist in DB
           if (targetLat != null && targetLng != null) {
             final Position? userPosition = await _getCurrentLocation();
 
@@ -164,7 +164,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         code: code,
       );
     } else if (resultTitle.isNotEmpty) {
-      // [ADDED] Show error dialog for location failure
+      //  Show error dialog for location failure
       _showCustomDialog(
         title: resultTitle,
         content: resultMessage,
@@ -172,7 +172,6 @@ class _QrScanScreenState extends State<QrScanScreen> {
         code: code,
       );
     } else {
-      // Not a point code -> Show standard content (URL or Text)
       bool isUrl = code.startsWith('http') || code.startsWith('www');
       _showCustomDialog(
         title: isUrl ? "Website Found" : "QR Code Text",

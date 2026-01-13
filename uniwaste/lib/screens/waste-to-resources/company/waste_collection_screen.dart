@@ -79,7 +79,6 @@ class WasteCollectionScreen extends StatelessWidget {
                       double collectedWeight = (bin.fillLevel / 100.0) * 5.0;
 
                       // 2. Update Global Stats (Accumulate)
-                      // We use SetOptions(merge: true) so it creates the doc if it doesn't exist
                       final statsRef = FirebaseFirestore.instance
                           .collection('stats')
                           .doc('impact');

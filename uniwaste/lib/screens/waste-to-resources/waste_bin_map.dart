@@ -305,9 +305,9 @@ class _WasteMapScreenState extends State<WasteBinMap> {
       builder: (ctx) {
         final Color currentColor =
             tempStatus == 'Active'
-                ? (tempLevel >= 80
-                    ? Colors.red
-                    : (tempLevel >= 50 ? Colors.orange : Colors.green))
+                ? (tempLevel >= 100
+                    ? const Color.fromARGB(255, 160, 15, 5)
+                    : (tempLevel >= 80 ? Colors.red : (tempLevel >= 50 ? Colors.orange : Colors.green)))
                 : (tempStatus == 'Maintenance'
                     ? Colors.orange.shade800
                     : Colors.grey);

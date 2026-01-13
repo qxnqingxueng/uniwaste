@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'dart:io'; // Import Platform
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -9,7 +10,6 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Stream to handle notification clicks
   final StreamController<String?> _onNotificationClick =
       StreamController<String?>.broadcast();
   Stream<String?> get onNotificationClick => _onNotificationClick.stream;
@@ -31,13 +31,20 @@ class NotificationService {
           iOS: initializationSettingsDarwin,
         );
 
-    // Initialize with onDidReceiveNotificationResponse to handle clicks
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         _onNotificationClick.add(response.payload);
       },
     );
+
+    if (Platform.isAndroid) {
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      await androidImplementation?.requestNotificationsPermission();
+    }
   }
 
   Future<void> showNotification({
@@ -46,12 +53,15 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
+    print("🔔 ATTEMPTING TO SHOW NOTIFICATION: $title - $body"); // Debug print
+
     const AndroidNotificationDetails androidDetails =
         AndroidNotificationDetails(
-          'chat_channel',
-          'Chat Messages',
+          'waste_alert_channel', // Changed to a unique channel ID
+          'Waste Alerts',
           importance: Importance.max,
           priority: Priority.high,
+          ticker: 'ticker',
         );
 
     const NotificationDetails details = NotificationDetails(
