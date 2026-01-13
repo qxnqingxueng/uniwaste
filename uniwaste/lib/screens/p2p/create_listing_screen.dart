@@ -420,14 +420,21 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
               if (!_isFree)
                 TextFormField(
                   controller: _priceController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     labelText: "Price (RM)",
                     prefixText: "RM ",
                     border: OutlineInputBorder(),
                   ),
-                  validator: (val) =>
-                      (!_isFree && (val == null || val.isEmpty)) ? 'Enter price' : null,
+                  validator: (val) {
+                    if (_isFree) return null;
+                    if (val == null || val.isEmpty) return 'Enter price';   
+                    final price = double.tryParse(val);
+                    if (price == null) return 'Invalid price format';
+                    if (price <= 0) return 'Price must be greater than 0';
+                    
+                    return null;
+                  },
                 ),
               const SizedBox(height: 24),
               ElevatedButton(
