@@ -8,6 +8,7 @@ import 'package:uniwaste/screens/marketplace/merchant_details/merchant_page.dart
 import 'package:merchant_repository/merchant_repository.dart';
 import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.dart';
 
+// Marketplace Home Screen
 class MarketplaceHomeScreen extends StatefulWidget {
   const MarketplaceHomeScreen({super.key});
 
@@ -19,7 +20,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = "All";
 
-  // Combined Categories from both versions
+  // Categories List (Can be dynamic based on your data)
   final List<String> _categories = [
     "All",
     "Halal",
@@ -47,7 +48,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
     return Scaffold(
       backgroundColor: bgCream,
 
-      // --- TRACKER BUTTON (From Current Code) ---
+      // --- FLOATING TRACK ORDER BUTTON ---
       floatingActionButton:
           user == null
               ? null
@@ -111,6 +112,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                 ),
               ),
 
+      // --- BODY: CUSTOM SCROLL VIEW WITH SLIVERS ---
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
         slivers: [
@@ -257,6 +259,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
                   );
                 }
 
+                // Display Filtered Merchants
                 return SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   sliver: SliverList(
@@ -291,6 +294,7 @@ class _MarketplaceHomeScreenState extends State<MarketplaceHomeScreen> {
   }
 }
 
+// --- FANCY MERCHANT CARD WIDGET (From Incoming Code) ---
 class _FancyMerchantCard extends StatelessWidget {
   final Merchant merchant;
   final VoidCallback onTap;
@@ -316,6 +320,7 @@ class _FancyMerchantCard extends StatelessWidget {
   }
 
   @override
+  // Build the Fancy Merchant Card UI
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -365,7 +370,7 @@ class _FancyMerchantCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
 
-                    // ✅ UPDATED: Shows Category Tags instead of "Cafe" or Description
+                    // Shows Category Tags instead of "Cafe" or Description
                     Text(
                       merchant.categories.isNotEmpty
                           ? merchant.categories.join(" • ")
@@ -379,6 +384,7 @@ class _FancyMerchantCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
 
+                    // Rating and Delivery Fee Row
                     const SizedBox(height: 10),
                     Row(
                       children: [

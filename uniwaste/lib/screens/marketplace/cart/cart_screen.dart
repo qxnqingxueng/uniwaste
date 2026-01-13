@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
 import 'package:uniwaste/screens/marketplace/checkout/checkout_screen.dart';
 
+// Screen displaying the user's cart
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
 

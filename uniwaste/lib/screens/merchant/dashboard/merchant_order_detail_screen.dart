@@ -12,6 +12,7 @@ class MerchantOrderDetailScreen extends StatelessWidget {
     required this.data,
   });
 
+  // --- FUNCTION TO UPDATE ORDER STATUS ---
   Future<void> _updateStatus(BuildContext context, String newStatus) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -51,6 +52,7 @@ class MerchantOrderDetailScreen extends StatelessWidget {
   }
 
   @override
+  // --- BUILD UI ---
   Widget build(BuildContext context) {
     final items = (data['items'] as List<dynamic>?) ?? [];
     final method = data['method'] ?? 'Delivery';

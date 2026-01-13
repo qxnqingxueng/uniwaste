@@ -20,10 +20,10 @@ class PaymentService {
           style: ThemeMode.light,
           merchantDisplayName: 'UniWaste',
 
-          // ✅ REQUIRED for GrabPay/Alipay (App Switching)
+          // REQUIRED for GrabPay/Alipay (App Switching)
           returnURL: 'flutterstripe://redirect',
 
-          // ✅ Enable Apple Pay / Google Pay if configured
+          // Enable Apple Pay / Google Pay if configured
           googlePay: const PaymentSheetGooglePay(
             merchantCountryCode: 'MY',
             testEnv: true,

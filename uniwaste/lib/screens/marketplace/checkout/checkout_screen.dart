@@ -12,6 +12,7 @@ import 'package:uniwaste/screens/marketplace/order_tracking/order_status_screen.
 import 'package:uniwaste/screens/profile/address_book_screen.dart';
 import 'package:uniwaste/services/activity_share_helper.dart';
 
+// Checkout Screen for Marketplace Orders
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -19,15 +20,14 @@ class CheckoutScreen extends StatefulWidget {
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
+// State for Checkout Screen
 class _CheckoutScreenState extends State<CheckoutScreen> {
   DeliveryInfo _deliveryInfo = DeliveryInfo();
   bool _isProcessing = false;
   bool isDelivery = true;
-
   double _merchantDeliveryFee = 3.00;
   String _merchantName = "Merchant";
   bool _isLoadingFee = true;
-
   DocumentSnapshot? _selectedVoucherDoc;
   double _voucherDiscount = 0.0;
 
@@ -44,6 +44,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
   }
 
+  // Initialize Data: Load User Profile and Merchant Info
   Future<void> _initData() async {
     if (!mounted) return;
 
@@ -70,6 +71,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     }
 
+    // Load Merchant Delivery Fee
     try {
       final state = context.read<CartBloc>().state;
       if (state is CartLoaded && state.items.isNotEmpty) {
@@ -97,6 +99,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  // Show Voucher Selector Modal
   void _showVoucherSelector() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -187,6 +190,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
+  // Handle Payment and Order Creation
   Future<void> _handlePayment(
     List<CartItemModel> items,
     double amountToPay,
@@ -306,7 +310,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
 
           if (mounted) {
-            final int pointsEarned = (amountToPay * 10).toInt();
+            final int pointsEarned = 50;
+
             String itemSummary = items.first.name;
             if (items.length > 1)
               itemSummary += " and ${items.length - 1} others";
@@ -317,7 +322,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               userDisplayName: user.displayName,
               title: "ordered $itemSummary",
               description: "received food from $_merchantName.",
-              points: pointsEarned,
+              points: pointsEarned, // Now passes 50
               type: 'merchant_order',
               createActivity: true,
             );

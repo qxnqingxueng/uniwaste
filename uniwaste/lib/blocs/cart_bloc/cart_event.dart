@@ -10,14 +10,16 @@ abstract class CartEvent extends Equatable {
 
 class LoadCart extends CartEvent {}
 
+// Event to add item
 class AddItem extends CartEvent {
   final CartItemModel item;
   const AddItem(this.item);
 
   @override
-  List<Object> get props => [item]; 
+  List<Object> get props => [item];
 }
 
+// Event to remove item
 class RemoveItem extends CartEvent {
   final String itemId;
   const RemoveItem(this.itemId);
@@ -28,7 +30,7 @@ class RemoveItem extends CartEvent {
 
 class ClearCart extends CartEvent {}
 
-// ✅ NEW: Event to toggle checkbox
+// Event to toggle selection
 class ToggleSelection extends CartEvent {
   final String itemId;
   const ToggleSelection(this.itemId);
@@ -37,7 +39,7 @@ class ToggleSelection extends CartEvent {
   List<Object> get props => [itemId];
 }
 
-// ✅ NEW: Event to change quantity
+// Event to change quantity
 class UpdateQuantity extends CartEvent {
   final String itemId;
   final int newQuantity;

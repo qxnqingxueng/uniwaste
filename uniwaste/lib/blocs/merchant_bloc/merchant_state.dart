@@ -9,6 +9,7 @@ abstract class MerchantState extends Equatable {
 
 class MerchantLoading extends MerchantState {}
 
+// Loaded state with merchants
 class MerchantLoaded extends MerchantState {
   final List<Merchant> merchants;
 
@@ -18,6 +19,7 @@ class MerchantLoaded extends MerchantState {
   List<Object> get props => [merchants];
 }
 
+// Error state
 class MerchantError extends MerchantState {
   final String message;
 

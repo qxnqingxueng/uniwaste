@@ -3,14 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'merchant_order_event.dart';
 import 'merchant_order_state.dart';
 
+// Bloc to manage merchant orders
 class MerchantOrderBloc extends Bloc<MerchantOrderEvent, MerchantOrderState> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   MerchantOrderBloc() : super(MerchantOrdersLoading()) {
-    on<LoadMerchantOrders>(_onLoadOrders);
-    on<UpdateOrderStatus>(_onUpdateStatus);
+    on<LoadMerchantOrders>(_onLoadOrders); // Handler for loading orders
+    on<UpdateOrderStatus>(_onUpdateStatus); // Handler for updating order status
   }
 
+  // Handler for loading orders
   Future<void> _onLoadOrders(
     LoadMerchantOrders event,
     Emitter<MerchantOrderState> emit,
@@ -23,19 +25,34 @@ class MerchantOrderBloc extends Bloc<MerchantOrderEvent, MerchantOrderState> {
           // simpler approach for MVP: Add a 'merchantId' field to the main order document
           // OR: Filter client-side if your DB structure is complex.
           // For now, let's assume you added 'merchantId' to the order document in CheckoutScreen.
-          .where('merchantId', isEqualTo: event.merchantId) 
+          .where('merchantId', isEqualTo: event.merchantId)
           .orderBy('orderDate', descending: true)
           .snapshots(),
       onData: (snapshot) {
-        final allOrders = snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          data['id'] = doc.id;
-          return data;
-        }).toList();
+        final allOrders =
+            snapshot.docs.map((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              data['id'] = doc.id;
+              return data;
+            }).toList();
 
         // Split into Active vs Past
-        final active = allOrders.where((o) => ['paid', 'accepted', 'ready'].contains(o['status'])).toList();
-        final past = allOrders.where((o) => ['completed', 'rejected', 'cancelled'].contains(o['status'])).toList();
+        final active =
+            allOrders
+                .where(
+                  (o) => ['paid', 'accepted', 'ready'].contains(o['status']),
+                )
+                .toList();
+        final past =
+            allOrders
+                .where(
+                  (o) => [
+                    'completed',
+                    'rejected',
+                    'cancelled',
+                  ].contains(o['status']),
+                )
+                .toList();
 
         return MerchantOrdersLoaded(active, past);
       },
@@ -43,11 +60,13 @@ class MerchantOrderBloc extends Bloc<MerchantOrderEvent, MerchantOrderState> {
     );
   }
 
+  // Handler for updating order status
   Future<void> _onUpdateStatus(
     UpdateOrderStatus event,
     Emitter<MerchantOrderState> emit,
   ) async {
     try {
+      // Update the order status in Firestore
       await _firestore.collection('orders').doc(event.orderId).update({
         'status': event.newStatus,
       });

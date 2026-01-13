@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+// Model representing an item in the cart
 class CartItemModel extends Equatable {
   final String id;
   final String name; // Primary name field
@@ -55,6 +56,7 @@ class CartItemModel extends Equatable {
     );
   }
 
+  // Helper to copy with new values
   CartItemModel copyWith({
     String? id,
     String? name,
@@ -80,6 +82,7 @@ class CartItemModel extends Equatable {
   }
 
   @override
+  // Equatable props for comparison
   List<Object?> get props => [
     id,
     name,

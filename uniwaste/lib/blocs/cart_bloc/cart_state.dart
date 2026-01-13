@@ -10,11 +10,13 @@ abstract class CartState extends Equatable {
 
 class CartLoading extends CartState {}
 
+// Loaded state with items
 class CartLoaded extends CartState {
   final List<CartItemModel> items;
 
   const CartLoaded({required this.items});
 
+  // Calculate total amount
   double get totalAmount {
     if (items.isEmpty) return 0.0;
     return items.fold(
@@ -27,6 +29,7 @@ class CartLoaded extends CartState {
   List<Object> get props => [items];
 }
 
+// Error state
 class CartError extends CartState {
   final String message;
   const CartError(this.message);
