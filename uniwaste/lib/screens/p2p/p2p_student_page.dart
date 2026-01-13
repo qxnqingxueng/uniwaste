@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:user_repository/user_repository.dart';
 
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
@@ -138,21 +137,21 @@ class _P2PStudentPageState extends State<P2PStudentPage>
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
-                content: Column(
+                content: const Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 10),
-                    const AnimatedCheck(size: 80),
-                    const SizedBox(height: 20),
-                    const Text(
+                    SizedBox(height: 10),
+                    AnimatedCheck(size: 80),
+                    SizedBox(height: 20),
+                    Text(
                       "Claim Successful!",
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: 8),
+                    Text(
                       'Check your "My Claims" tab.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.grey),
@@ -245,18 +244,18 @@ class _P2PStudentPageState extends State<P2PStudentPage>
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              content: Column(
+              content: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 10),
-                  const AnimatedCheck(size: 80),
-                  const SizedBox(height: 20),
-                  const Text(
+                  SizedBox(height: 10),
+                  AnimatedCheck(size: 80),
+                  SizedBox(height: 20),
+                  Text(
                     "Shared to Feed!",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
+                  SizedBox(height: 8),
+                  Text(
                     'Your community can now see your impact.',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey),
@@ -290,7 +289,7 @@ class _P2PStudentPageState extends State<P2PStudentPage>
       currentUserName: userName,
       otherUserName: data['donor_name'],
     );
-    if (mounted)
+    if (mounted) {
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -304,6 +303,7 @@ class _P2PStudentPageState extends State<P2PStudentPage>
               ),
         ),
       );
+    }
   }
 
   // --- REPUTATION SYSTEM LOGIC ---
@@ -347,13 +347,13 @@ class _P2PStudentPageState extends State<P2PStudentPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            content: Column(
+            content: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10),
-                const AnimatedCheck(size: 80),
-                const SizedBox(height: 20),
-                const Text(
+                SizedBox(height: 10),
+                AnimatedCheck(size: 80),
+                SizedBox(height: 20),
+                Text(
                   "Review Submitted!",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
@@ -446,18 +446,18 @@ class _P2PStudentPageState extends State<P2PStudentPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            content: Column(
+            content: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10),
-                const AnimatedCheck(size: 80),
-                const SizedBox(height: 20),
-                const Text(
+                SizedBox(height: 10),
+                AnimatedCheck(size: 80),
+                SizedBox(height: 20),
+                Text(
                   "Report Submitted!",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-                const SizedBox(height: 8),
-                const Text(
+                SizedBox(height: 8),
+                Text(
                   "Thank you for helping keep the community safe.",
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.grey),
@@ -767,7 +767,7 @@ void _showReportDialog(String donorId, String listingId) {
     final double price = (data['price'] ?? 0).toDouble();
     final String donorName = data['donor_name'] ?? 'User';
 
-    final Color chatAvatarColor = const Color.fromRGBO(210, 220, 182, 1);
+    const Color chatAvatarColor = Color.fromRGBO(210, 220, 182, 1);
 
     return GestureDetector(
       onTap: () {
@@ -896,11 +896,13 @@ void _showReportDialog(String donorId, String listingId) {
               .orderBy('created_at', descending: true)
               .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting)
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
+        }
         final docs = snapshot.data?.docs ?? [];
-        if (docs.isEmpty)
+        if (docs.isEmpty) {
           return const Center(child: Text("You haven't claimed anything yet."));
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),

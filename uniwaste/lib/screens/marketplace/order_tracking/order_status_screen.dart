@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 class OrderStatusScreen extends StatelessWidget {
   final String orderId;
@@ -55,9 +54,9 @@ class OrderStatusScreen extends StatelessWidget {
 
           // ✅ PROGRESS LOGIC
           int currentStep = 0;
-          if (status == 'pending' || status == 'paid')
+          if (status == 'pending' || status == 'paid') {
             currentStep = 1;
-          else if (status == 'preparing')
+          } else if (status == 'preparing')
             currentStep = 2;
           else if (status == 'on_the_way' ||
               status == 'ready' ||

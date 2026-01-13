@@ -88,15 +88,15 @@ class ActivityShareHelper {
           context: context,
           builder: (ctx) => AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            content: Column(
+            content: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 10),
-                const AnimatedCheck(size: 80), // The new animation
-                const SizedBox(height: 20),
-                const Text("Shared!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                const SizedBox(height: 8),
-                const Text('Successfully shared to the community feed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
+                SizedBox(height: 10),
+                AnimatedCheck(size: 80), // The new animation
+                SizedBox(height: 20),
+                Text("Shared!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                SizedBox(height: 8),
+                Text('Successfully shared to the community feed.', textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
               ],
             ),
             actions: [

@@ -2,11 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert'; // for base64Decode
-import 'dart:typed_data'; // for Uint8List / MemoryImage
+// for Uint8List / MemoryImage
 import 'friend_profile_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 

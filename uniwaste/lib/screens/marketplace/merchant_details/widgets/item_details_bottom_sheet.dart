@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
 import 'package:uniwaste/screens/marketplace/cart/models/cart_item_model.dart';
 
 class ItemDetailsBottomSheet extends StatefulWidget {

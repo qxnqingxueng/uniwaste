@@ -665,7 +665,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      // ✅ UPDATED ONPRESSED LOGIC
                       onPressed:
                           _isProcessing || _isLoadingFee
                               ? null

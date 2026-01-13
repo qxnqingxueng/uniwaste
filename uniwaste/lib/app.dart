@@ -4,7 +4,6 @@ import 'package:user_repository/user_repository.dart';
 import 'package:merchant_repository/merchant_repository.dart'; // ✅ Import this
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/blocs/cart_bloc/cart_bloc.dart';
-import 'package:uniwaste/blocs/cart_bloc/cart_event.dart';
 import 'package:uniwaste/blocs/merchant_bloc/merchant_bloc.dart'; // ✅ Import this
 import 'app_view.dart';
 import 'package:uniwaste/blocs/merchant_order_bloc/merchant_order_bloc.dart';
