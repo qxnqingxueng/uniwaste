@@ -337,7 +337,9 @@ class _FoodDialogState extends State<_FoodDialog> {
                 border: OutlineInputBorder(),
                 isDense: true,
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
             ),
             const SizedBox(height: 12),
             TextField(

@@ -12,7 +12,6 @@ import 'package:uniwaste/blocs/notification_bloc/notification_bloc.dart';
 class MyApp extends StatelessWidget {
   final UserRepository userRepository;
   final MerchantRepository merchantRepository; // ✅ Ensure this is here
-  
 
   const MyApp(this.userRepository, this.merchantRepository, {super.key});
 
@@ -22,9 +21,7 @@ class MyApp extends StatelessWidget {
       providers: [
         RepositoryProvider.value(value: userRepository),
         RepositoryProvider.value(value: merchantRepository),
-        BlocProvider<NotificationBloc>(
-            create: (context) => NotificationBloc(),
-          ),
+        BlocProvider<NotificationBloc>(create: (context) => NotificationBloc()),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -48,9 +45,8 @@ class MyApp extends StatelessWidget {
           ),
 
           BlocProvider<MerchantOrderBloc>(
-          create: (context) => MerchantOrderBloc(),
-        ),
-        
+            create: (context) => MerchantOrderBloc(),
+          ),
         ],
         child: const MyAppView(),
       ),

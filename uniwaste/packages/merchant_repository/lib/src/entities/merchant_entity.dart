@@ -1,4 +1,3 @@
-
 class MerchantEntity {
   final String id;
   final String name;
