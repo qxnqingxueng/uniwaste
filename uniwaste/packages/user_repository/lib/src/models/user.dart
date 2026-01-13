@@ -9,6 +9,7 @@ class MyUser extends Equatable {
   final double reputationScore;
   final int ratingCount;
   final int reportCount;
+  final String role;
 
   const MyUser({
     required this.userId,
@@ -18,8 +19,10 @@ class MyUser extends Equatable {
     this.reputationScore = 100.0,
     this.ratingCount = 0,
     this.reportCount = 0,
+    this.role = 'user', 
   });
 
+  bool get isAdmin => role == 'admin';
   bool get isRestricted => reportCount >= 3 || reputationScore < 50.0;
 
   static const empty = MyUser(
@@ -30,10 +33,9 @@ class MyUser extends Equatable {
     reputationScore: 100.0,
     ratingCount: 0,
     reportCount: 0,
+    role: 'user', 
   );
 
-  // --- ADD THIS METHOD HERE ---
-  // This allows you to create a copy of the user with a new ID
   MyUser copyWith({
     String? userId,
     String? email,
@@ -42,6 +44,7 @@ class MyUser extends Equatable {
     double? reputationScore,
     int? ratingCount,
     int? reportCount,
+    String? role, 
   }) {
     return MyUser(
       userId: userId ?? this.userId,
@@ -51,9 +54,9 @@ class MyUser extends Equatable {
       reputationScore: reputationScore ?? this.reputationScore,
       ratingCount: ratingCount ?? this.ratingCount,
       reportCount: reportCount ?? this.reportCount,
+      role: role ?? this.role, 
     );
   }
-  // ----------------------------
 
   MyUserEntity toEntity() {
     return MyUserEntity(
@@ -64,6 +67,7 @@ class MyUser extends Equatable {
       reputationScore: reputationScore,
       ratingCount: ratingCount,
       reportCount: reportCount,
+      role: role, 
     );
   }
 
@@ -76,9 +80,10 @@ class MyUser extends Equatable {
       reputationScore: entity.reputationScore,
       ratingCount: entity.ratingCount,
       reportCount: entity.reportCount,
+      role: entity.role, 
     );
   }
 
   @override
-  List<Object?> get props => [userId, email, name, hasActiveCart, reputationScore, ratingCount, reportCount];
-  }
+  List<Object?> get props => [userId, email, name, hasActiveCart, reputationScore, ratingCount, reportCount, role];
+}

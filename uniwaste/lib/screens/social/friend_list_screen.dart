@@ -334,6 +334,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
                     MaterialPageRoute(
                       builder:
                           (_) => FriendProfileScreen(
+                            friendUserId: friend.uid,
                             name: friend.name,
                             email: friend.email,
                             avatarBase64: friend.avatarBase64,
@@ -866,7 +867,7 @@ class _FriendListScreenState extends State<FriendListScreen> {
     );
   }
 
-Widget _buildFriendRow(_Friend friend) {
+  Widget _buildFriendRow(_Friend friend) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       // Clip ensures the green bar respects the rounded corners
@@ -882,11 +883,9 @@ Widget _buildFriendRow(_Friend friend) {
             // 1. Green Accent Bar
             Container(
               width: 4,
-              decoration: BoxDecoration(
-                color: _accent.withOpacity(0.6),
-              ),
+              decoration: BoxDecoration(color: _accent.withOpacity(0.6)),
             ),
-            
+
             const SizedBox(width: 8),
 
             // 2. MAIN CONTENT (Wrapped in Expanded)
@@ -901,9 +900,9 @@ Widget _buildFriendRow(_Friend friend) {
                       padding: const EdgeInsets.only(left: 8.0),
                       child: _buildAvatar(friend, radius: 27),
                     ),
-                    
+
                     const SizedBox(width: 12),
-                    
+
                     // Text Column (Wrapped in Expanded)
                     // This creates the constraint so text truncates instead of overflowing
                     Expanded(
@@ -914,7 +913,8 @@ Widget _buildFriendRow(_Friend friend) {
                           Text(
                             friend.name,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis, // Adds "..." if too long
+                            overflow:
+                                TextOverflow.ellipsis, // Adds "..." if too long
                             style: const TextStyle(
                               fontSize: 16, // Reduced slightly to fit better
                               fontWeight: FontWeight.w600,
@@ -924,7 +924,8 @@ Widget _buildFriendRow(_Friend friend) {
                           Text(
                             friend.email,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis, // Adds "..." if too long
+                            overflow:
+                                TextOverflow.ellipsis, // Adds "..." if too long
                             style: const TextStyle(
                               fontSize: 13,
                               color: Colors.grey,
@@ -943,10 +944,11 @@ Widget _buildFriendRow(_Friend friend) {
             IconButton(
               icon: const Icon(Icons.more_horiz, size: 22),
               onPressed: () => _showFriendOptions(friend),
-              padding: EdgeInsets.zero, // Reduces extra padding causing width issues
+              padding:
+                  EdgeInsets.zero, // Reduces extra padding causing width issues
               constraints: const BoxConstraints(), // Minimizes button footprint
             ),
-            
+
             // Right margin for the button
             const SizedBox(width: 12),
           ],

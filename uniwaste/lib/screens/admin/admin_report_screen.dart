@@ -1,7 +1,9 @@
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // ✅ Required for Logout
 import 'package:intl/intl.dart';
+import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart'; // ✅ Required for Logout
 
 class AdminReportScreen extends StatefulWidget {
   const AdminReportScreen({super.key});
@@ -39,18 +41,12 @@ class _AdminReportScreenState extends State<AdminReportScreen> {
 
     if (confirm != true) return;
 
-if (confirm != true) return;
-
     try {
       final userRef = _db.collection('users').doc(userId);
       final tenDaysLater = DateTime.now().add(const Duration(days: 10));
 
       await _db.runTransaction((transaction) async {
         transaction.update(userRef, {
-          // ❌ REMOVED: 'reportCount': FieldValue.increment(1), 
-          // REASON: The count already went up when the student submitted the report.
-          // We don't want to double count the same incident.
-          
           'reputationScore': FieldValue.increment(-20.0), // Apply Penalty
           'banExpiresAt': Timestamp.fromDate(tenDaysLater), // Apply Ban
         });
@@ -112,10 +108,20 @@ if (confirm != true) return;
       child: Scaffold(
         appBar: AppBar(
           title: const Text("Admin Panel"),
-          backgroundColor: Colors.redAccent,
-          foregroundColor: Colors.white,
+          // ❌ Removed manual colors to match the rest of the app theme
+          
+          actions: [
+            // ✅ Logout Button
+            IconButton(
+              icon: const Icon(Icons.logout),
+              tooltip: 'Logout',
+              onPressed: () {
+                context.read<AuthenticationBloc>().add(AuthenticationLogoutRequested());
+              },
+            ),
+          ],
           bottom: const TabBar(
-            indicatorColor: Colors.white,
+            // Removed manual indicatorColor so it uses the theme color
             tabs: [
               Tab(text: "Review Queue", icon: Icon(Icons.rate_review)),
               Tab(text: "Banned Users", icon: Icon(Icons.lock_clock)),
@@ -148,7 +154,7 @@ if (confirm != true) return;
             final data = reports[index].data() as Map<String, dynamic>;
             final String reportedUserId = data['reported_user'] ?? '';
 
-            // ✅ FILTER LOGIC: Fetch user to check stats before showing
+            // FILTER LOGIC: Fetch user to check stats before showing
             return FutureBuilder<DocumentSnapshot>(
               future: _db.collection('users').doc(reportedUserId).get(),
               builder: (context, userSnap) {
@@ -171,7 +177,7 @@ if (confirm != true) return;
                 return _ReportCard(
                   reportId: reports[index].id,
                   data: data,
-                  userStats: userData, // Pass stats to avoid re-fetching
+                  userStats: userData, 
                   onPunish: () => _punishUser(reports[index].id, reportedUserId),
                   onDismiss: () => _dismissReport(reports[index].id),
                 );

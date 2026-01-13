@@ -5,14 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:user_repository/user_repository.dart';
-
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
 import 'package:uniwaste/screens/p2p/create_listing_screen.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/chat_detail_screen.dart';
 import 'package:uniwaste/services/activity_share_helper.dart';
 import 'package:uniwaste/screens/p2p/product_detail_screen.dart';
-import 'package:uniwaste/widgets/animated_check.dart'; // ✅ Using this widget
+import 'package:uniwaste/widgets/animated_check.dart';
 
 class P2PStudentPage extends StatefulWidget {
   const P2PStudentPage({super.key});
@@ -339,33 +338,39 @@ class _P2PStudentPageState extends State<P2PStudentPage>
 
       if (mounted) {
         Navigator.pop(context); // Close Rating Dialog
-        
-        // ✅ REPLACED SNACKBAR WITH ANIMATED CHECK DIALOG
+
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            content: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(height: 10),
-                AnimatedCheck(size: 80),
-                SizedBox(height: 20),
-                Text(
-                  "Review Submitted!",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+                content: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 10),
+                    AnimatedCheck(size: 80),
+                    SizedBox(height: 20),
+                    Text(
+                      "Review Submitted!",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(color: Color(0xFF6B8E23)),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
       }
     } catch (e) {
@@ -383,16 +388,18 @@ class _P2PStudentPageState extends State<P2PStudentPage>
   ) async {
     if (reason.trim().isEmpty) return;
 
-    final String? reporterId = context.read<AuthenticationBloc>().state.user?.userId;
+    final String? reporterId =
+        context.read<AuthenticationBloc>().state.user?.userId;
     if (reporterId == null) return;
 
     try {
       // 1. CHECK FOR DUPLICATES
-      final existingReports = await _db
-          .collection('reports')
-          .where('listing_id', isEqualTo: listingId)
-          .where('reporter_id', isEqualTo: reporterId)
-          .get();
+      final existingReports =
+          await _db
+              .collection('reports')
+              .where('listing_id', isEqualTo: listingId)
+              .where('reporter_id', isEqualTo: reporterId)
+              .get();
 
       if (existingReports.docs.isNotEmpty) {
         if (mounted) {
@@ -422,62 +429,66 @@ class _P2PStudentPageState extends State<P2PStudentPage>
 
       // 3. RUN TRANSACTION
       await _db.runTransaction((transaction) async {
-         final newReportRef = _db.collection('reports').doc();
-         transaction.set(newReportRef, reportData);
+        final newReportRef = _db.collection('reports').doc();
+        transaction.set(newReportRef, reportData);
 
-         final userRef = _db.collection('users').doc(donorId);
-         transaction.update(userRef, {
-           'reportCount': FieldValue.increment(1),
-         });
+        final userRef = _db.collection('users').doc(donorId);
+        transaction.update(userRef, {'reportCount': FieldValue.increment(1)});
 
-         final listingRef = _db.collection('food_listings').doc(listingId);
-         transaction.update(listingRef, {
-           'is_reported_by_claimer': true,
-         });
+        final listingRef = _db.collection('food_listings').doc(listingId);
+        transaction.update(listingRef, {'is_reported_by_claimer': true});
       });
 
       if (mounted) {
         Navigator.pop(context); // Close Report Dialog
-        
-        // ✅ REPLACED SNACKBAR WITH ANIMATED CHECK DIALOG
+
         showDialog(
           context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            content: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(height: 10),
-                AnimatedCheck(size: 80),
-                SizedBox(height: 20),
-                Text(
-                  "Report Submitted!",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          builder:
+              (ctx) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                SizedBox(height: 8),
-                Text(
-                  "Thank you for helping keep the community safe.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
+                content: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(height: 10),
+                    AnimatedCheck(size: 80),
+                    SizedBox(height: 20),
+                    Text(
+                      "Report Submitted!",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      "Thank you for helping keep the community safe.",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text(
+                      "OK",
+                      style: TextStyle(color: Color(0xFF6B8E23)),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
         );
       }
     } catch (e) {
       debugPrint("Error reporting user: $e");
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
   }
@@ -540,7 +551,7 @@ class _P2PStudentPageState extends State<P2PStudentPage>
     );
   }
 
-void _showReportDialog(String donorId, String listingId) {
+  void _showReportDialog(String donorId, String listingId) {
     final reasonController = TextEditingController();
     Uint8List? proofImage;
 
@@ -558,9 +569,7 @@ void _showReportDialog(String donorId, String listingId) {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      "Please describe the issue and upload proof.",
-                    ),
+                    const Text("Please describe the issue and upload proof."),
                     const SizedBox(height: 10),
                     TextField(
                       controller: reasonController,
@@ -571,19 +580,19 @@ void _showReportDialog(String donorId, String listingId) {
                       maxLines: 3,
                     ),
                     const SizedBox(height: 10),
-                    
+
                     GestureDetector(
                       onTap: () async {
-                        // ✅ FIX: Added maxWidth and imageQuality to reduce size < 1MB
+                        // Added maxWidth and imageQuality to reduce size < 1MB
                         final XFile? image = await ImagePicker().pickImage(
                           source: ImageSource.gallery,
-                          maxWidth: 800,   // Resize to max 800px width
+                          maxWidth: 800, // Resize to max 800px width
                           imageQuality: 50, // Compress quality to 50%
                         );
-                        
+
                         if (image != null) {
-                           final bytes = await image.readAsBytes();
-                           setDialogState(() => proofImage = bytes);
+                          final bytes = await image.readAsBytes();
+                          setDialogState(() => proofImage = bytes);
                         }
                       },
                       child: Container(
@@ -594,24 +603,28 @@ void _showReportDialog(String donorId, String listingId) {
                           border: Border.all(color: Colors.grey.shade300),
                         ),
                         alignment: Alignment.center,
-                        child: proofImage == null 
-                          ? const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.add_a_photo, color: Colors.grey),
-                                Text("Upload Proof Image", style: TextStyle(color: Colors.grey)),
-                              ],
-                            )
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(
-                                proofImage!, 
-                                fit: BoxFit.cover,
-                                width: double.maxFinite,
-                              ),
-                            ),
+                        child:
+                            proofImage == null
+                                ? const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo, color: Colors.grey),
+                                    Text(
+                                      "Upload Proof Image",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                )
+                                : ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.memory(
+                                    proofImage!,
+                                    fit: BoxFit.cover,
+                                    width: double.maxFinite,
+                                  ),
+                                ),
                       ),
-                    )
+                    ),
                   ],
                 ),
                 actions: [
@@ -622,10 +635,19 @@ void _showReportDialog(String donorId, String listingId) {
                   TextButton(
                     onPressed: () {
                       if (proofImage == null) {
-                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Proof image is required.")));
-                         return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Proof image is required."),
+                          ),
+                        );
+                        return;
                       }
-                      _submitReport(donorId, reasonController.text, listingId, proofImage);
+                      _submitReport(
+                        donorId,
+                        reasonController.text,
+                        listingId,
+                        proofImage,
+                      );
                     },
                     child: const Text(
                       "Report",
@@ -932,20 +954,10 @@ void _showReportDialog(String donorId, String listingId) {
                               () =>
                                   _openChat(data, uid, currentUser?.name ?? ''),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.share),
-                          onPressed:
-                              () => _shareItem(
-                                data,
-                                docs[index].id,
-                                uid,
-                                currentUser?.name ?? '',
-                              ),
-                        ),
                       ],
                     ),
                   ),
-                  
+
                   Padding(
                     padding: const EdgeInsets.only(
                       left: 16,
@@ -983,7 +995,7 @@ void _showReportDialog(String donorId, String listingId) {
                         const SizedBox(width: 10),
 
                         if (!isReported)
-                           Expanded(
+                          Expanded(
                             child: OutlinedButton.icon(
                               icon: const Icon(
                                 Icons.flag,
@@ -994,26 +1006,34 @@ void _showReportDialog(String donorId, String listingId) {
                                 "Report",
                                 style: TextStyle(color: Colors.red),
                               ),
-                              onPressed: () => _showReportDialog(
-                                donorId, 
-                                docs[index].id 
-                              ),
+                              onPressed:
+                                  () => _showReportDialog(
+                                    donorId,
+                                    docs[index].id,
+                                  ),
                               style: OutlinedButton.styleFrom(
                                 side: const BorderSide(color: Colors.red),
                               ),
                             ),
                           )
                         else
-                           Expanded(
-                             child: OutlinedButton.icon(
-                               onPressed: null, // Disabled
-                               icon: const Icon(Icons.flag, size: 16, color: Colors.grey),
-                               label: const Text("Reported", style: TextStyle(color: Colors.grey)),
-                               style: OutlinedButton.styleFrom(
-                                 side: const BorderSide(color: Colors.grey),
-                               ),
-                             ),
-                           ),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: null, // Disabled
+                              icon: const Icon(
+                                Icons.flag,
+                                size: 16,
+                                color: Colors.grey,
+                              ),
+                              label: const Text(
+                                "Reported",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.grey),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

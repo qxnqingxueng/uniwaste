@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uniwaste/services/chat_service.dart';
 import 'package:uniwaste/screens/social/friend_profile_screen.dart';
+import 'package:uniwaste/widgets/animated_check.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -44,11 +45,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   // Fetch & cache avatar/profile
   Future<void> _loadProfileAndCache() async {
     try {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(widget.otherUserId)
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.otherUserId)
+          .get();
 
       if (doc.exists) {
         _otherUserData = doc.data();
@@ -78,34 +78,103 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // ✅ NEW: DIALOG HELPERS (replaces snackbar)
+  // ---------------------------------------------------------------------------
+
+  void _showSuccessDialog({required String title, required String message}) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            const AnimatedCheck(size: 80),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              "OK",
+              style: TextStyle(color: Color(0xFF6B8E23)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorDialog(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Oops'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              "OK",
+              style: TextStyle(color: Color(0xFF6B8E23)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// Send a *friend request* from chat, using incoming/outgoingRequests.
-  Future<void> _sendFriendRequestFromChat() async {
+  Future<void> _sendFriendRequestFromChat({
+    required String otherName,
+    required bool closeProfileDialogFirst,
+  }) async {
     try {
+      // ✅ If user tapped the button INSIDE the profile dialog,
+      // close it first so our success dialog is visible.
+      if (closeProfileDialogFirst && mounted) {
+        Navigator.of(context).pop(); // closes the profile dialog
+      }
+
       final String currentUserId = widget.currentUserId;
       final String otherUserId = widget.otherUserId;
 
-      final currentRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(currentUserId);
-      final otherRef = FirebaseFirestore.instance
-          .collection('users')
-          .doc(otherUserId);
+      final currentRef =
+          FirebaseFirestore.instance.collection('users').doc(currentUserId);
+      final otherRef =
+          FirebaseFirestore.instance.collection('users').doc(otherUserId);
 
       final currentSnap = await currentRef.get();
       final otherSnap = await otherRef.get();
 
       if (!currentSnap.exists || !otherSnap.exists) {
         if (!mounted) return;
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('User profile not found')));
+        _showErrorDialog('User profile not found');
         return;
       }
 
       final currentData = currentSnap.data() as Map<String, dynamic>;
       final otherData = otherSnap.data() as Map<String, dynamic>;
 
-      final String otherName = otherData['name'] ?? widget.otherUserName;
+      final String resolvedOtherName =
+          (otherData['name'] ?? otherName).toString();
 
       final List<dynamic> currentFriends =
           (currentData['friends'] as List<dynamic>?) ?? [];
@@ -125,44 +194,39 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
       if (currentFriends.contains(otherUserId) ||
           otherFriends.contains(currentUserId)) {
-        // Already friends
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$otherName is already your friend')),
+        _showSuccessDialog(
+          title: 'Already friends ✓',
+          message: '$resolvedOtherName is already your friend.',
         );
         return;
       }
 
       if (currentOutgoing.contains(otherUserId)) {
-        // Already sent
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Friend request already sent to $otherName')),
+        _showSuccessDialog(
+          title: 'Request already sent ✓',
+          message: 'You already sent a request to $resolvedOtherName.',
         );
         return;
       }
 
       if (currentIncoming.contains(otherUserId)) {
-        // They already requested you
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '$otherName has already sent you a request. Check your friend requests.',
-            ),
-          ),
+        _showSuccessDialog(
+          title: 'Request received ✓',
+          message:
+              '$resolvedOtherName has already sent you a request. Check your friend requests.',
         );
         return;
       }
 
       if (otherIncoming.contains(currentUserId) ||
           otherOutgoing.contains(currentUserId)) {
-        // Symmetry safety, but should be covered by above
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Friend request is already pending with $otherName'),
-          ),
+        _showSuccessDialog(
+          title: 'Pending request ✓',
+          message: 'Friend request is already pending with $resolvedOtherName.',
         );
         return;
       }
@@ -178,15 +242,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ]);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Friend request sent to $otherName')),
+      _showSuccessDialog(
+        title: 'Request Sent!',
+        message: 'Friend request sent to $resolvedOtherName.',
       );
     } catch (e) {
       debugPrint('Error sending friend request: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to send friend request')),
-      );
+      _showErrorDialog('Failed to send friend request');
     }
   }
 
@@ -262,16 +325,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         radius: 50,
                         backgroundColor: Colors.grey.shade200,
                         backgroundImage: _profileImageProvider,
-                        child:
-                            _profileImageProvider == null
-                                ? Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : "?",
-                                  style: const TextStyle(
-                                    fontSize: 40,
-                                    color: Colors.grey,
-                                  ),
-                                )
-                                : null,
+                        child: _profileImageProvider == null
+                            ? Text(
+                                name.isNotEmpty
+                                    ? name[0].toUpperCase()
+                                    : "?",
+                                style: const TextStyle(
+                                  fontSize: 40,
+                                  color: Colors.grey,
+                                ),
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -322,17 +386,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed:
-                            canTap
-                                ? () async {
-                                  await _sendFriendRequestFromChat();
-                                }
-                                : null,
+                        onPressed: canTap
+                            ? () async {
+                                await _sendFriendRequestFromChat(
+                                  otherName: name,
+                                  closeProfileDialogFirst: true,
+                                );
+                              }
+                            : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              canTap
-                                  ? const Color.fromRGBO(119, 136, 115, 1.0)
-                                  : Colors.grey.shade400,
+                          backgroundColor: canTap
+                              ? const Color.fromRGBO(119, 136, 115, 1.0)
+                              : Colors.grey.shade400,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -352,12 +417,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder:
-                                  (context) => FriendProfileScreen(
-                                    name: name,
-                                    email: email,
-                                    avatarBase64: photoBase64,
-                                  ),
+                              builder: (context) => FriendProfileScreen(
+                                friendUserId: widget.otherUserId, // ✅ NEW (important)
+                                name: name,
+                                email: email,
+                                avatarBase64: photoBase64,
+                              ),
                             ),
                           );
                         },
@@ -516,18 +581,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 radius: 18,
                 backgroundColor: const Color.fromRGBO(210, 220, 182, 1),
                 backgroundImage: _profileImageProvider,
-                child:
-                    _profileImageProvider == null
-                        ? Text(
-                          widget.otherUserName.isNotEmpty
-                              ? widget.otherUserName[0].toUpperCase()
-                              : "?",
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                          ),
-                        )
-                        : null,
+                child: _profileImageProvider == null
+                    ? Text(
+                        widget.otherUserName.isNotEmpty
+                            ? widget.otherUserName[0].toUpperCase()
+                            : "?",
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      )
+                    : null,
               ),
             ),
             const SizedBox(width: 10),
@@ -583,8 +647,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       return _buildItemCard(data, isMe);
                     }
 
-                    final Timestamp? timestamp =
-                        data['timestamp'] as Timestamp?;
+                    final Timestamp? timestamp = data['timestamp'] as Timestamp?;
                     return Align(
                       alignment:
                           isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -595,10 +658,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           maxWidth: MediaQuery.of(context).size.width * 0.75,
                         ),
                         decoration: BoxDecoration(
-                          color:
-                              isMe
-                                  ? const Color.fromRGBO(119, 136, 115, 1.0)
-                                  : Colors.white,
+                          color: isMe
+                              ? const Color.fromRGBO(119, 136, 115, 1.0)
+                              : Colors.white,
                           borderRadius: BorderRadius.only(
                             topLeft: const Radius.circular(12),
                             topRight: const Radius.circular(12),
@@ -627,9 +689,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(
-                                  DateFormat(
-                                    'h:mm a',
-                                  ).format(timestamp.toDate()),
+                                  DateFormat('h:mm a').format(timestamp.toDate()),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: isMe ? Colors.white70 : Colors.grey,
@@ -663,9 +723,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                        ),
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 20),
                       ),
                     ),
                   ),
@@ -673,11 +732,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   CircleAvatar(
                     backgroundColor: const Color.fromRGBO(119, 136, 115, 1.0),
                     child: IconButton(
-                      icon: const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      icon: const Icon(Icons.send,
+                          color: Colors.white, size: 20),
                       onPressed: _sendMessage,
                     ),
                   ),

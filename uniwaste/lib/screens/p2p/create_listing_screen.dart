@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:uniwaste/blocs/authentication_bloc/authentication_bloc.dart';
+import 'package:uniwaste/widgets/animated_check.dart'; 
 
 class CreateListingScreen extends StatefulWidget {
   const CreateListingScreen({super.key});
@@ -188,10 +189,47 @@ class _CreateListingScreenState extends State<CreateListingScreen> {
       await db.collection('food_listings').add(p2pData);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Listing Posted Successfully!')),
+        // ✅ REPLACED SNACKBAR WITH ANIMATED CHECK DIALOG
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const AnimatedCheck(size: 80),
+                const SizedBox(height: 20),
+                const Text(
+                  "Listing Posted!",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Thank you for sharing with the community.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx); // Close Dialog
+                },
+                child: const Text("OK", style: TextStyle(color: Color(0xFF6B8E23))),
+              ),
+            ],
+          ),
         );
-        Navigator.pop(context);
+        
+        // After dialog closes, pop the screen
+        if (mounted) {
+           Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:user_repository/user_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,18 +13,57 @@ class FirebaseUserRepo implements UserRepository {
 
   @override
   Stream<MyUser?> get user {
-    return _firebaseAuth.authStateChanges().flatMap((firebaseUser) async* {
+    // 1. Create a controller to manage the output stream manually
+    final controller = StreamController<MyUser?>();
+    
+    // Keep track of the Firestore subscription so we can cancel it when the user changes
+    StreamSubscription<DocumentSnapshot>? firestoreSubscription;
+
+    // 2. Listen to Firebase Auth changes (Login / Logout)
+    final authSubscription = _firebaseAuth.authStateChanges().listen((firebaseUser) {
+      
+      // Cancel the previous Firestore listener immediately (Prevent overlapping/deadlock)
+      firestoreSubscription?.cancel();
+      firestoreSubscription = null;
+
       if (firebaseUser == null) {
-        yield MyUser.empty;
+        // User Logged Out: Emit empty user
+        controller.add(MyUser.empty);
       } else {
-        yield* usersCollection
+        // User Logged In: Listen to their Firestore document
+        firestoreSubscription = usersCollection
             .doc(firebaseUser.uid)
-            .get()
-            .then((value) =>
-                MyUser.fromEntity(MyUserEntity.fromDocument(value.data()!)))
-            .asStream();
+            .snapshots()
+            .handleError((e) {
+              // Handle potential permission errors during logout gracefully
+              log('Firestore stream error: $e');
+            })
+            .listen((snapshot) {
+              if (snapshot.exists && snapshot.data() != null) {
+                try {
+                  controller.add(
+                    MyUser.fromEntity(
+                      MyUserEntity.fromDocument(snapshot.data()!)
+                    )
+                  );
+                } catch (e) {
+                  log('Error parsing user data: $e');
+                  controller.add(MyUser.empty);
+                }
+              } else {
+                controller.add(MyUser.empty);
+              }
+            });
       }
     });
+
+    // 3. Cleanup: Cancel all subscriptions when the stream is no longer needed
+    controller.onCancel = () {
+      firestoreSubscription?.cancel();
+      authSubscription.cancel();
+    };
+
+    return controller.stream;
   }
 
   @override
@@ -43,8 +83,6 @@ class FirebaseUserRepo implements UserRepository {
       UserCredential user = await _firebaseAuth.createUserWithEmailAndPassword(
           email: myUser.email, password: password);
 
-      // --- FIX IS HERE ---
-      // Instead of myUser.userId = ..., we create a new copy with the ID
       myUser = myUser.copyWith(userId: user.user!.uid);
 
       return myUser;
@@ -69,12 +107,5 @@ class FirebaseUserRepo implements UserRepository {
       log(e.toString());
       rethrow;
     }
-  }
-}
-
-// Fixed the Extension to handle types better
-extension on Stream<User?> {
-  Stream<MyUser?> flatMap(Stream<MyUser?> Function(User? firebaseUser) mapper) {
-    return asyncExpand(mapper);
   }
 }
