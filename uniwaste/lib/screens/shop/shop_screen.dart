@@ -23,7 +23,7 @@ class _ShopPageState extends State<ShopPage> {
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text(
-          "Marketplace",
+          "Shops & Markets",
           style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
