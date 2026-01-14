@@ -124,7 +124,7 @@ class _ShopPageState extends State<ShopPage> {
                 // Student Exchange Card
                 _buildMarketCard(
                   context,
-                  title: "Student Exchange",
+                  title: "Student Donate/Sell",
                   subtitle: "Peer-to-peer sharing",
                   icon: Icons.people_outline,
                   color: const Color(0xFFFFF3E0), // Light Orange
